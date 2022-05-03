@@ -1,0 +1,8 @@
+service:
+  full_name: "Amazon EMR on EKS"
+  short_name: "Route53"
+  link: "https://aws.amazon.com/emr/features/eks/"
+  documentation: "https://docs.aws.amazon.com/emr/latest/EMR-on-EKS-DevelopmentGuide/emr-eks.html"
+api_versions:
+  - api_version: v1alpha1
+    status: available
