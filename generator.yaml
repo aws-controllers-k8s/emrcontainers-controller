@@ -1,0 +1,11 @@
+ignore:
+  field_paths: null
+  operations: null
+  resource_names:
+  - VirtualCluster
+  - ManagedEndpoint
+  shape_names: null
+model_name: emr-containers
+operations: {}
+prefix_config: {}
+resources: {}
