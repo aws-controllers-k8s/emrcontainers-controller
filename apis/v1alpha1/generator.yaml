@@ -7,7 +7,6 @@ ignore:
   shape_names: null
 model_name: emr-containers
 operations:
-  CreateVirtualCluster:
   DescribeVirtualCluster:
     output_wrapper_field_path: VirtualCluster
 prefix_config: {}
