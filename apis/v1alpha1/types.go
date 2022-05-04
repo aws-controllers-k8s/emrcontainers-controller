@@ -27,3 +27,72 @@ var (
 	_ = &aws.JSONValue{}
 	_ = ackv1alpha1.AWSAccountID("")
 )
+
+// A configuration specification to be used when provisioning virtual clusters,
+// which can include configurations for applications and software bundled with
+// Amazon EMR on EKS. A configuration consists of a classification, properties,
+// and optional nested configurations. A classification refers to an application-specific
+// configuration file. Properties are the settings you want to change in that
+// file.
+type Configuration struct {
+	Classification *string `json:"classification,omitempty"`
+}
+
+// The information about the container used for a job run or a managed endpoint.
+type ContainerInfo struct {
+	// The information about the EKS cluster.
+	EKSInfo *EKSInfo `json:"eksInfo,omitempty"`
+}
+
+// The information about the container provider.
+type ContainerProvider struct {
+	ID *string `json:"id,omitempty"`
+	// The information about the container used for a job run or a managed endpoint.
+	Info *ContainerInfo `json:"info,omitempty"`
+	Type *string        `json:"type_,omitempty"`
+}
+
+// The information about the EKS cluster.
+type EKSInfo struct {
+	Namespace *string `json:"namespace,omitempty"`
+}
+
+// This entity represents the endpoint that is managed by Amazon EMR on EKS.
+type Endpoint struct {
+	CreatedAt        *metav1.Time       `json:"createdAt,omitempty"`
+	ID               *string            `json:"id,omitempty"`
+	Name             *string            `json:"name,omitempty"`
+	Tags             map[string]*string `json:"tags,omitempty"`
+	VirtualClusterID *string            `json:"virtualClusterID,omitempty"`
+}
+
+// This entity describes a job run. A job run is a unit of work, such as a Spark
+// jar, PySpark script, or SparkSQL query, that you submit to Amazon EMR on
+// EKS.
+type JobRun struct {
+	ClientToken      *string            `json:"clientToken,omitempty"`
+	CreatedAt        *metav1.Time       `json:"createdAt,omitempty"`
+	FinishedAt       *metav1.Time       `json:"finishedAt,omitempty"`
+	ID               *string            `json:"id,omitempty"`
+	Name             *string            `json:"name,omitempty"`
+	Tags             map[string]*string `json:"tags,omitempty"`
+	VirtualClusterID *string            `json:"virtualClusterID,omitempty"`
+}
+
+// This entity describes a virtual cluster. A virtual cluster is a Kubernetes
+// namespace that Amazon EMR is registered with. Amazon EMR uses virtual clusters
+// to run jobs and host endpoints. Multiple virtual clusters can be backed by
+// the same physical cluster. However, each virtual cluster maps to one namespace
+// on an EKS cluster. Virtual clusters do not create any active resources that
+// contribute to your bill or that require lifecycle management outside the
+// service.
+type VirtualCluster_SDK struct {
+	ARN *string `json:"arn,omitempty"`
+	// The information about the container provider.
+	ContainerProvider *ContainerProvider `json:"containerProvider,omitempty"`
+	CreatedAt         *metav1.Time       `json:"createdAt,omitempty"`
+	ID                *string            `json:"id,omitempty"`
+	Name              *string            `json:"name,omitempty"`
+	State             *string            `json:"state,omitempty"`
+	Tags              map[string]*string `json:"tags,omitempty"`
+}
