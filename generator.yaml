@@ -8,8 +8,6 @@ ignore:
 model_name: emr-containers
 operations:
   CreateVirtualCluster:
-  ListVirtualClusters:
-    output_wrapper_field_path: VirtualCluster
   DescribeVirtualCluster:
     output_wrapper_field_path: VirtualCluster
 prefix_config: {}
