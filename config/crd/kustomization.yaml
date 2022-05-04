@@ -3,3 +3,4 @@ kind: Kustomization
 bases:
   - common
 resources:
+  - bases/emrcontainers.services.k8s.aws_virtualclusters.yaml

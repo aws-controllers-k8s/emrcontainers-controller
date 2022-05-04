@@ -9,6 +9,7 @@ rules:
 - apiGroups:
   - emrcontainers.services.k8s.aws
   resources:
+  - virtualclusters
   verbs:
   - get
   - list

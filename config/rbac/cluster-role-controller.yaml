@@ -33,6 +33,26 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - emrcontainers.services.k8s.aws
+  resources:
+  - virtualclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - emrcontainers.services.k8s.aws
+  resources:
+  - virtualclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - services.k8s.aws
   resources:
   - adoptedresources

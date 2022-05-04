@@ -3,11 +3,11 @@
 This repository contains source code for the AWS Controllers for Kubernetes
 (ACK) service controller for EMR on EKS Service.
 
-Please [log issues](https://github.com/aws-controllers-k8s/community/issues) and feedback on the main AWS Controllers for Kubernetes Github project.
+Please [log issues](https://github.com/aws-controllers-k8s/community/issues) and feedback on the main AWS Controllers for Kubernetes (ACK) Github project.
 
 ## Overview
 
-The ACK service controller for EMR on EKS provides declarative way to run spark jobs on EKS clusters. EMR on EKS uses highly optimized EMR runtime [3.5 times faster than open-source Spark](https://aws.amazon.com/blogs/big-data/amazon-emr-on-amazon-eks-provides-up-to-61-lower-costs-and-up-to-68-performance-improvement-for-spark-workloads/) when you run these jobs. For more information about EMR on EKS, please read our [documentation](https://docs.aws.amazon.com/emr/latest/EMR-on-EKS-DevelopmentGuide/emr-eks.html)
+The ACK service controller for EMR on EKS provides declarative way to run spark jobs on EKS clusters. EMR on EKS manages the lifecycle of these jobs and it uses highly optimized EMR runtime [3.5 times faster than open-source Spark](https://aws.amazon.com/blogs/big-data/amazon-emr-on-amazon-eks-provides-up-to-61-lower-costs-and-up-to-68-performance-improvement-for-spark-workloads/) when you run these jobs. For more information about EMR on EKS, please read our [documentation](https://docs.aws.amazon.com/emr/latest/EMR-on-EKS-DevelopmentGuide/emr-eks.html)
 
 ## Contributing
 

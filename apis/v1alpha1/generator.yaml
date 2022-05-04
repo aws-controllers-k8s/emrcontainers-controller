@@ -2,10 +2,21 @@ ignore:
   field_paths: null
   operations: null
   resource_names:
-  - VirtualCluster
+  # - VirtualCluster
   - ManagedEndpoint
   shape_names: null
 model_name: emr-containers
-operations: {}
+operations:
+  CreateVirtualCluster:
+  ListVirtualClusters:
+    output_wrapper_field_path: VirtualCluster
+  DescribeVirtualCluster:
+    output_wrapper_field_path: VirtualCluster
 prefix_config: {}
-resources: {}
+resources:
+  VirtualCluster:
+    exceptions:
+      terminal_codes:
+      - ValidationException
+      - ResourceNotFoundException
+      - InternalServerException

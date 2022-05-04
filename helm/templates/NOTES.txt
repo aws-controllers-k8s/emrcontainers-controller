@@ -4,7 +4,7 @@ This chart deploys "public.ecr.aws/aws-controllers-k8s/emrcontainers-controller:
 Check its status by running:
   kubectl --namespace {{ .Release.Namespace }} get pods -l "app.kubernetes.io/instance={{ .Release.Name }}"
 
-You are now able to create Amazon EMR on EKS (Route53) resources!
+You are now able to create Amazon EMR on EKS (emr-containers) resources!
 
 The controller is running in "{{ .Values.installScope }}" mode.
 The controller is configured to manage AWS resources in region: "{{ .Values.aws.region }}"

@@ -33,6 +33,8 @@ import (
 	svctypes "github.com/aws-controllers-k8s/emrcontainers-controller/apis/v1alpha1"
 	svcresource "github.com/aws-controllers-k8s/emrcontainers-controller/pkg/resource"
 
+	_ "github.com/aws-controllers-k8s/emrcontainers-controller/pkg/resource/virtual_cluster"
+
 	"github.com/aws-controllers-k8s/emrcontainers-controller/pkg/version"
 )
 
