@@ -51,6 +51,8 @@ spec:
                 properties:
                   id:
                     type: string
+                  type:
+                    type: string
                   info:
                     description: The information about the container used for a job
                       run or a managed endpoint.
@@ -62,8 +64,7 @@ spec:
                             type: string
                         type: object
                     type: object
-                  type_:
-                    type: string
+                  # type_:
                 type: object
               name:
                 description: The specified name of the virtual cluster.
@@ -74,7 +75,7 @@ spec:
                 description: The tags assigned to the virtual cluster.
                 type: object
             required:
-            - clientToken
+            # - clientToken
             - containerProvider
             - name
             type: object
