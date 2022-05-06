@@ -41,8 +41,8 @@ def virtual_cluster():
     virtual_cluster_name = random_suffix_name("emr-virtual-cluster", 32)
 
     replacements = REPLACEMENT_VALUES.copy()
-    replacements["VIRTUALCLUSTER_NAME"] = virtual_cluster_name
-    replacements["EKS_CLUSTER_NAME"] =
+    replacements["VIRTUALCLUSTER_NAME"] = virtual-cluster-name
+    replacements["EKS_CLUSTER_NAME"] = eks-cluster-name
 
     resource_data = load_eks_resource(
         "virtual_cluster",
