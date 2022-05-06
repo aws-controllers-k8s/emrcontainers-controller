@@ -1,0 +1,13 @@
+apiVersion: emrcontainers.services.k8s.aws/v1alpha1
+kind: VirtualCluster
+metadata:
+  name: $VIRTUALCLUSTER_NAME
+  namespace: $NAMESPACE
+spec:
+  name: $VIRTUALCLUSTER_NAME
+  containerProvider:
+    id: $EKS_CLUSTER_NAME
+    type_: EKS
+    info:
+      eksInfo:
+        namespace: $NAMESPACE

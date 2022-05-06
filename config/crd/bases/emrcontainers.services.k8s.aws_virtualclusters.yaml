@@ -43,15 +43,10 @@ spec:
               any active resources that contribute to your bill or that require lifecycle
               management outside the service."
             properties:
-              clientToken:
-                description: The client token of the virtual cluster.
-                type: string
               containerProvider:
                 description: The container provider of the virtual cluster.
                 properties:
                   id:
-                    type: string
-                  type:
                     type: string
                   info:
                     description: The information about the container used for a job
@@ -64,7 +59,8 @@ spec:
                             type: string
                         type: object
                     type: object
-                  # type_:
+                  type_:
+                    type: string
                 type: object
               name:
                 description: The specified name of the virtual cluster.
@@ -75,7 +71,6 @@ spec:
                 description: The tags assigned to the virtual cluster.
                 type: object
             required:
-            # - clientToken
             - containerProvider
             - name
             type: object

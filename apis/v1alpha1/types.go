@@ -70,7 +70,6 @@ type Endpoint struct {
 // jar, PySpark script, or SparkSQL query, that you submit to Amazon EMR on
 // EKS.
 type JobRun struct {
-	ClientToken      *string            `json:"clientToken,omitempty"`
 	CreatedAt        *metav1.Time       `json:"createdAt,omitempty"`
 	FinishedAt       *metav1.Time       `json:"finishedAt,omitempty"`
 	ID               *string            `json:"id,omitempty"`
