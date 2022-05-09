@@ -39,13 +39,16 @@ CHECK_STATUS_WAIT_SECONDS = 10
 @pytest.fixture
 def virtual_cluster():
     virtual_cluster_name = random_suffix_name("emr-virtual-cluster", 32)
+    eks_cluster_name = "troubleshoot"
+    namespace_name = "spark2"
 
     replacements = REPLACEMENT_VALUES.copy()
-    replacements["VIRTUALCLUSTER_NAME"] = virtual-cluster-name
-    replacements["EKS_CLUSTER_NAME"] = eks-cluster-name
+    replacements["VIRTUALCLUSTER_NAME"] = virtual_cluster_name
+    replacements["EKS_CLUSTER_NAME"] = eks_cluster_name
+    replacements["NAMESPACE"] = namespace_name
 
     resource_data = load_eks_resource(
-        "virtual_cluster",
+        "virtualcluster",
         additional_replacements=replacements,
     )
     logging.debug(resource_data)
@@ -53,7 +56,7 @@ def virtual_cluster():
     # Create the k8s resource
     ref = k8s.CustomResourceReference(
         CRD_GROUP, CRD_VERSION, RESOURCE_PLURAL,
-        virtual_cluster_name, namespace="default",
+        virtual_cluster_name, namespace=namespace_name,
     )
     k8s.create_custom_resource(ref, resource_data)
     cr = k8s.wait_resource_consumed_by_controller(ref)
@@ -78,11 +81,12 @@ class TestVirtualCluster:
         (ref, cr) = virtual_cluster
 
         virtual_cluster_id = cr["status"]["id"]
+        print("virtual_cluster_id = ", virtual_cluster_id)
 
         assert virtual_cluster_id
 
         try:
-            aws_res = emrcontainers_client.get_virtual_cluster(Id=virtual_cluster_id)
+            aws_res = emrcontainers_client.describe_virtual_cluster(id=virtual_cluster_id)
             assert aws_res is not None
-        except emrcontainers_client.exceptions.NoSuchVirtualCluster:
+        except emrcontainers_client.exceptions.ResourceNotFoundException:
             pytest.fail(f"Could not find virtual cluster with ID '{virtual_cluster_id}' in EMR on EKS")

@@ -48,4 +48,4 @@ def k8s_client():
 
 @pytest.fixture(scope='module')
 def emrcontainers_client():
-    return boto3.client('emrcontainers')
+    return boto3.client('emr-containers', region_name='us-east-2')
