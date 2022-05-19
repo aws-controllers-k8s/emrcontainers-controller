@@ -17,15 +17,14 @@ for them.
 
 from dataclasses import dataclass
 from acktest.bootstrapping import Resources
-from acktest.bootstrapping.iam import Role
-from acktest.bootstrapping.vpc import VPC
+
 from e2e import bootstrap_directory
+from e2e.bootstrappable.eks_cluster import EKSCluster
+from e2e.bootstrappable.emr_eks_cluster import EMREnabledEKSCluster
 
 @dataclass
 class BootstrapResources(Resources):
-    ClusterVPC: VPC
-    ClusterRole: Role
-    NodegroupRole: Role
+    HostCluster: EMREnabledEKSCluster
 
 _bootstrap_resources = None
 
