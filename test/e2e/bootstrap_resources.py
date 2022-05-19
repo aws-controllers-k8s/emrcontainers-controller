@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from acktest.bootstrapping import Resources
 
 from e2e import bootstrap_directory
-from e2e.bootstrappable.eks_cluster import EKSCluster
 from e2e.bootstrappable.emr_eks_cluster import EMREnabledEKSCluster
 
 @dataclass

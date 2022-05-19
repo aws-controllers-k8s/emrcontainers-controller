@@ -22,7 +22,6 @@ from typing import Union
 from botocore import session
 from awscli.customizations.eks.get_token import STSClientFactory, TokenGenerator
 
-from acktest import resources
 from acktest.aws.identity import get_account_id
 from acktest.bootstrapping import Bootstrappable
 from acktest.bootstrapping.iam import ServiceLinkedRole
