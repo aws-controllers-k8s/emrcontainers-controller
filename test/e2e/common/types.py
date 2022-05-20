@@ -1,1 +1,0 @@
-CLUSTER_RESOURCE_PLURAL = 'clusters'
