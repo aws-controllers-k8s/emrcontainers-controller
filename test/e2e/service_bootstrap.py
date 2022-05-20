@@ -32,7 +32,7 @@ def service_bootstrap() -> Resources:
     logging.getLogger().setLevel(logging.INFO)
 
     resources = BootstrapResources(
-        HostCluster=EMREnabledEKSCluster("emr-eks-cluster", "emr-ns")
+        HostCluster=EMREnabledEKSCluster("ack-emr-eks", "emr-ns")
     )
 
     try:

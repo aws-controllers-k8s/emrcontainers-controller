@@ -18,12 +18,4 @@ from e2e.bootstrap_resources import get_bootstrap_resources
 
 
 REPLACEMENT_VALUES = {
-    "CLUSTER_ROLE": get_bootstrap_resources().ClusterRole.arn,
-    # "FARGATE_POD_ROLE": get_bootstrap_resources().FargatePodRole.arn,
-    "NODEGROUP_ROLE": get_bootstrap_resources().NodegroupRole.arn,
-    "VPC_ID": get_bootstrap_resources().ClusterVPC.vpc_id,
-    "PUBLIC_SUBNET_1": get_bootstrap_resources().ClusterVPC.public_subnets.subnet_ids[0],
-    "PUBLIC_SUBNET_2": get_bootstrap_resources().ClusterVPC.public_subnets.subnet_ids[1],
-    "PRIVATE_SUBNET_1": get_bootstrap_resources().ClusterVPC.private_subnets.subnet_ids[0],
-    "PRIVATE_SUBNET_2": get_bootstrap_resources().ClusterVPC.private_subnets.subnet_ids[1]
 }
