@@ -85,6 +85,14 @@ class EMREnabledEKSCluster(Bootstrappable):
         """
         super().bootstrap()
 
+        # # check if cluster is Active
+        # try:
+        #     cluster = self.eks_client.describe_cluster(name=self.cluster.name)
+        #     assert cluster is not None
+        #     cluster_endpoint = cluster["cluster"]["endpoint"]
+        # except self.eks_client.exceptions.ResourceNotFoundException:
+        #     pytest.fail(f"Could not find cluster with '{self.cluster.name}' in EKS")
+
         cluster = self.eks_client.describe_cluster(name=self.cluster.name)
         cluster_endpoint = cluster["cluster"]["endpoint"]
 
@@ -117,37 +125,37 @@ class EMREnabledEKSCluster(Bootstrappable):
                         api_groups=[""],
                         resources=["namespaces"],
                         verbs=["get"],
-                    ), 
+                    ),
                     kubernetes.client.V1PolicyRule(
                         api_groups=[""],
                         resources=["serviceaccounts", "services", "configmaps", "events", "pods", "pods/log"],
                         verbs=["get", "list", "watch", "describe", "create", "edit", "delete", "deletecollection", "annotate", "patch", "label"],
-                    ), 
+                    ),
                     kubernetes.client.V1PolicyRule(
                         api_groups=[""],
                         resources=["secrets"],
                         verbs=["create", "patch", "delete", "watch"],
-                    ), 
+                    ),
                     kubernetes.client.V1PolicyRule(
                         api_groups=["apps"],
                         resources=["statefulsets", "deployments"],
                         verbs=["get", "list", "watch", "describe", "create", "edit", "delete", "annotate", "patch", "label"],
-                    ), 
+                    ),
                     kubernetes.client.V1PolicyRule(
                         api_groups=["batch"],
                         resources=["jobs"],
                         verbs=["get", "list", "watch", "describe", "create", "edit", "delete", "annotate", "patch", "label"],
-                    ), 
+                    ),
                     kubernetes.client.V1PolicyRule(
                         api_groups=["extensions"],
                         resources=["ingresses"],
                         verbs=["get", "list", "watch", "describe", "create", "edit", "delete", "annotate", "patch", "label"],
-                    ), 
+                    ),
                     kubernetes.client.V1PolicyRule(
                         api_groups=["rbac.authorization.k8s.io"],
                         resources=["roles", "rolebindings"],
                         verbs=["get", "list", "watch", "describe", "create", "edit", "delete", "deletecollection", "annotate", "patch", "label"],
-                    ), 
+                    ),
                 ]
             ))
 
@@ -187,4 +195,3 @@ class EMREnabledEKSCluster(Bootstrappable):
         """Deletes the EKS cluster and all associated resources.
         """
         super().cleanup()
-        

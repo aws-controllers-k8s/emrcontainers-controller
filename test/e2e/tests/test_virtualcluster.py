@@ -23,7 +23,7 @@ import pytest
 
 from acktest.k8s import resource as k8s
 from acktest.resources import random_suffix_name
-from e2e import service_marker, CRD_GROUP, CRD_VERSION, load_eks_resource
+from e2e import service_marker, CRD_GROUP, CRD_VERSION, load_resource
 from e2e.replacement_values import REPLACEMENT_VALUES
 from e2e.bootstrap_resources import get_bootstrap_resources
 
@@ -43,7 +43,7 @@ def simple_cluster():
     replacements["VIRTUALCLUSTER_NAME"] = virtual_cluster_name
     replacements["EKS_CLUSTER_NAME"] = get_bootstrap_resources().HostCluster.cluster.name
 
-    resource_data = load_eks_resource(
+    resource_data = load_resource(
         "simple_cluster",
         additional_replacements=replacements,
     )
@@ -74,6 +74,13 @@ def simple_cluster():
 class TestVirtualCluster:
     def test_create_delete_virtualcluster(self, simple_cluster, emrcontainers_client):
         (ref, cr) = simple_cluster
-
-        # TODO: Tests go here
         assert cr
+
+        virtual_cluster_id = cr["status"]["id"]
+        assert virtual_cluster_id
+
+        try:
+            aws_res = emrcontainers_client.describe_virtual_cluster(id=virtual_cluster_id)
+            assert aws_res is not None
+        except emrcontainers_client.exceptions.ResourceNotFoundException:
+            pytest.fail(f"Could not find virtual cluster with ID '{virtual_cluster_id}' in EMR on EKS")
