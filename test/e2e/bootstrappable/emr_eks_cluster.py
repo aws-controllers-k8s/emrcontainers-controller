@@ -85,14 +85,6 @@ class EMREnabledEKSCluster(Bootstrappable):
         """
         super().bootstrap()
 
-        # # check if cluster is Active
-        # try:
-        #     cluster = self.eks_client.describe_cluster(name=self.cluster.name)
-        #     assert cluster is not None
-        #     cluster_endpoint = cluster["cluster"]["endpoint"]
-        # except self.eks_client.exceptions.ResourceNotFoundException:
-        #     pytest.fail(f"Could not find cluster with '{self.cluster.name}' in EKS")
-
         cluster = self.eks_client.describe_cluster(name=self.cluster.name)
         cluster_endpoint = cluster["cluster"]["endpoint"]
 
