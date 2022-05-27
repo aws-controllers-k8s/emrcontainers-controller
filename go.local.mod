@@ -1,6 +1,6 @@
 module github.com/aws-controllers-k8s/emrcontainers-controller
 
-go 1.14
+go 1.17
 
 replace github.com/aws-controllers-k8s/runtime => ../runtime
 
