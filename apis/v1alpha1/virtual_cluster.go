@@ -30,9 +30,6 @@ import (
 // contribute to your bill or that require lifecycle management outside the
 // service.
 type VirtualClusterSpec struct {
-	// The client token of the virtual cluster.
-	// +kubebuilder:validation:Required
-	ClientToken *string `json:"clientToken"`
 	// The container provider of the virtual cluster.
 	// +kubebuilder:validation:Required
 	ContainerProvider *ContainerProvider `json:"containerProvider"`

@@ -217,41 +217,38 @@ func (rm *resourceManager) newCreateRequestPayload(
 ) (*svcsdk.CreateVirtualClusterInput, error) {
 	res := &svcsdk.CreateVirtualClusterInput{}
 
-	if r.ko.Spec.ClientToken != nil {
-		res.SetClientToken(*r.ko.Spec.ClientToken)
-	}
 	if r.ko.Spec.ContainerProvider != nil {
-		f1 := &svcsdk.ContainerProvider{}
+		f0 := &svcsdk.ContainerProvider{}
 		if r.ko.Spec.ContainerProvider.ID != nil {
-			f1.SetId(*r.ko.Spec.ContainerProvider.ID)
+			f0.SetId(*r.ko.Spec.ContainerProvider.ID)
 		}
 		if r.ko.Spec.ContainerProvider.Info != nil {
-			f1f1 := &svcsdk.ContainerInfo{}
+			f0f1 := &svcsdk.ContainerInfo{}
 			if r.ko.Spec.ContainerProvider.Info.EKSInfo != nil {
-				f1f1f0 := &svcsdk.EksInfo{}
+				f0f1f0 := &svcsdk.EksInfo{}
 				if r.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace != nil {
-					f1f1f0.SetNamespace(*r.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace)
+					f0f1f0.SetNamespace(*r.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace)
 				}
-				f1f1.SetEksInfo(f1f1f0)
+				f0f1.SetEksInfo(f0f1f0)
 			}
-			f1.SetInfo(f1f1)
+			f0.SetInfo(f0f1)
 		}
 		if r.ko.Spec.ContainerProvider.Type != nil {
-			f1.SetType(*r.ko.Spec.ContainerProvider.Type)
+			f0.SetType(*r.ko.Spec.ContainerProvider.Type)
 		}
-		res.SetContainerProvider(f1)
+		res.SetContainerProvider(f0)
 	}
 	if r.ko.Spec.Name != nil {
 		res.SetName(*r.ko.Spec.Name)
 	}
 	if r.ko.Spec.Tags != nil {
-		f3 := map[string]*string{}
-		for f3key, f3valiter := range r.ko.Spec.Tags {
-			var f3val string
-			f3val = *f3valiter
-			f3[f3key] = &f3val
+		f2 := map[string]*string{}
+		for f2key, f2valiter := range r.ko.Spec.Tags {
+			var f2val string
+			f2val = *f2valiter
+			f2[f2key] = &f2val
 		}
-		res.SetTags(f3)
+		res.SetTags(f2)
 	}
 
 	return res, nil

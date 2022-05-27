@@ -1,5 +1,7 @@
 ignore:
-  field_paths: null
+  field_paths:
+    - CreateVirtualClusterInput.ClientToken
+    - JobRun.ClientToken
   operations: null
   resource_names:
   # - VirtualCluster
