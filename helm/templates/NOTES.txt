@@ -1,10 +1,10 @@
 {{ .Chart.Name }} has been installed.
-This chart deploys "public.ecr.aws/aws-controllers-k8s/emrcontainers-controller:v0.0.1".
+This chart deploys "public.ecr.aws/aws-controllers-k8s/emrcontainers-controller:v0.0.2".
 
 Check its status by running:
   kubectl --namespace {{ .Release.Namespace }} get pods -l "app.kubernetes.io/instance={{ .Release.Name }}"
 
-You are now able to create Amazon EMR on EKS (emr-containers) resources!
+You are now able to create Amazon EMR on EKS (EMRContainers) resources!
 
 The controller is running in "{{ .Values.installScope }}" mode.
 The controller is configured to manage AWS resources in region: "{{ .Values.aws.region }}"
