@@ -1,0 +1,36 @@
+---
+annotations:
+  capabilityLevel: Basic Install
+  shortDescription: AWS EMR on EKS controller is a service controller for managing EMR on EKS resources
+    in Kubernetes
+displayName: AWS Controllers for Kubernetes - Amazon EMR on EKS
+description: |-
+  Manage Amazon EMR on EKS resources in AWS from within your Kubernetes cluster.
+
+
+  **About Amazon EMR on EKS**
+
+
+  Amazon EMR on EKS provides a deployment option for Amazon EMR that allows you to run open-source big data frameworks on Amazon Elastic Kubernetes Service (Amazon EKS). With this deployment option, you can focus on running analytics workloads while Amazon EMR on EKS builds, configures, and manages containers for open-source applications.
+
+
+  **About the AWS Controllers for Kubernetes**
+
+
+  This controller is a component of the [AWS Controller for Kubernetes](https://github.com/aws/aws-controllers-k8s)
+  project.
+
+
+  **Pre-Installation Steps**
+
+
+  Please follow the following link: [Red Hat OpenShift](https://aws-controllers-k8s.github.io/community/docs/user-docs/openshift/)
+samples:
+- kind: VirtualCluster
+  spec: '{}'
+maintainers:
+- name: "emr on eks maintainer team"
+  email: "ack-maintainers@amazon.com"
+links: 
+- name: Amazon EMR on EKS Developer Resources
+  url: https://docs.aws.amazon.com/emr/latest/EMR-on-EKS-DevelopmentGuide/emr-eks.html
