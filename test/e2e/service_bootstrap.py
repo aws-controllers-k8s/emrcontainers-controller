@@ -14,10 +14,11 @@
 """
 import boto3
 import logging
+import json
 import time
 
 from acktest.bootstrapping import Resources, BootstrapFailureException
-
+from acktest.bootstrapping.iam import Role, UserPolicies
 from e2e import bootstrap_directory
 from e2e.bootstrap_resources import BootstrapResources
 from e2e.bootstrappable.emr_eks_cluster import EMREnabledEKSCluster
@@ -31,7 +32,37 @@ CHECK_STATUS_WAIT_SECONDS = 10
 def service_bootstrap() -> Resources:
     logging.getLogger().setLevel(logging.INFO)
 
+    job_execution_policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:ListBucket"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "logs:PutLogEvents",
+                    "logs:CreateLogStream",
+                    "logs:DescribeLogGroups",
+                    "logs:DescribeLogStreams"
+                ],
+                "Resource": [
+                    "arn:aws:logs:*:*:*"
+                ]
+            }
+        ]
+    })
+
     resources = BootstrapResources(
+        JobExecutionRole=Role("ack-emrcontainers-job-execution-role", "ec2.amazonaws.com",
+            user_policies=UserPolicies("ack-emrcontainers-job-execution-policy", [job_execution_policy])
+        ),
         HostCluster=EMREnabledEKSCluster("ack-emr-eks", "emr-ns")
     )
 

@@ -1,0 +1,23 @@
+apiVersion: emrcontainers.services.k8s.aws/v1alpha1
+kind: JobRun
+metadata:
+  name: $JOBRUN_NAME
+  # namespace: emr-ns
+spec:
+  name: $JOBRUN_NAME
+  virtualClusterID: $VIRTUALCLUSTER_ID
+  executionRoleARN: $JOB_EXECUTION_ROLE
+  releaseLabel: $EMR_RELEASE_LABEL
+  jobDriver:
+    sparkSubmitJobDriver:
+      entryPoint: "local:///usr/lib/spark/examples/src/main/python/pi.py"
+      entryPointArguments:
+      sparkSubmitParameters: "--conf spark.executor.instances=2 --conf spark.executor.memory=1G --conf spark.executor.cores=1 --conf spark.driver.cores=1"
+  # configurationOverrides:
+  #   applicationConfiguration:
+  #   monitoringConfiguration:
+  #     cloudWatchMonitoringConfiguration:
+  #       logGroupName:
+  #       logStreamNamePrefix:
+  #     s3MonitoringConfiguration:
+  #       logUri:
