@@ -87,7 +87,7 @@ def virtualcluster_jobrun():
     replacements["EKS_CLUSTER_NAME"] = get_bootstrap_resources().HostCluster.cluster.name
 
     resource_data = load_resource(
-        "simple_cluster",
+        "emr_virtual_cluster",
         additional_replacements=replacements,
     )
     logging.debug(resource_data)
