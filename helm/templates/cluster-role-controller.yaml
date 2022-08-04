@@ -41,6 +41,26 @@ rules:
 - apiGroups:
   - emrcontainers.services.k8s.aws
   resources:
+  - jobruns
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - emrcontainers.services.k8s.aws
+  resources:
+  - jobruns/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - emrcontainers.services.k8s.aws
+  resources:
   - virtualclusters
   verbs:
   - create

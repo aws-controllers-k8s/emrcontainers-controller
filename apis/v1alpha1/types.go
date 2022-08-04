@@ -28,6 +28,12 @@ var (
 	_ = ackv1alpha1.AWSAccountID("")
 )
 
+// A configuration for CloudWatch monitoring. You can configure your jobs to
+// send log information to CloudWatch Logs.
+type CloudWatchMonitoringConfiguration struct {
+	LogStreamNamePrefix *string `json:"logStreamNamePrefix,omitempty"`
+}
+
 // A configuration specification to be used when provisioning virtual clusters,
 // which can include configurations for applications and software bundled with
 // Amazon EMR on EKS. A configuration consists of a classification, properties,
@@ -60,22 +66,50 @@ type EKSInfo struct {
 // This entity represents the endpoint that is managed by Amazon EMR on EKS.
 type Endpoint struct {
 	CreatedAt        *metav1.Time       `json:"createdAt,omitempty"`
+	ExecutionRoleARN *string            `json:"executionRoleARN,omitempty"`
+	FailureReason    *string            `json:"failureReason,omitempty"`
 	ID               *string            `json:"id,omitempty"`
 	Name             *string            `json:"name,omitempty"`
+	ReleaseLabel     *string            `json:"releaseLabel,omitempty"`
+	SecurityGroup    *string            `json:"securityGroup,omitempty"`
+	StateDetails     *string            `json:"stateDetails,omitempty"`
 	Tags             map[string]*string `json:"tags,omitempty"`
 	VirtualClusterID *string            `json:"virtualClusterID,omitempty"`
+}
+
+// Specify the driver that the job runs on.
+type JobDriver struct {
+	// The information about job driver for Spark submit.
+	SparkSubmitJobDriver *SparkSubmitJobDriver `json:"sparkSubmitJobDriver,omitempty"`
 }
 
 // This entity describes a job run. A job run is a unit of work, such as a Spark
 // jar, PySpark script, or SparkSQL query, that you submit to Amazon EMR on
 // EKS.
-type JobRun struct {
-	CreatedAt        *metav1.Time       `json:"createdAt,omitempty"`
-	FinishedAt       *metav1.Time       `json:"finishedAt,omitempty"`
-	ID               *string            `json:"id,omitempty"`
+type JobRun_SDK struct {
+	ARN              *string      `json:"arn,omitempty"`
+	ClientToken      *string      `json:"clientToken,omitempty"`
+	CreatedAt        *metav1.Time `json:"createdAt,omitempty"`
+	CreatedBy        *string      `json:"createdBy,omitempty"`
+	ExecutionRoleARN *string      `json:"executionRoleARN,omitempty"`
+	FailureReason    *string      `json:"failureReason,omitempty"`
+	FinishedAt       *metav1.Time `json:"finishedAt,omitempty"`
+	ID               *string      `json:"id,omitempty"`
+	// Specify the driver that the job runs on.
+	JobDriver        *JobDriver         `json:"jobDriver,omitempty"`
 	Name             *string            `json:"name,omitempty"`
+	ReleaseLabel     *string            `json:"releaseLabel,omitempty"`
+	State            *string            `json:"state,omitempty"`
+	StateDetails     *string            `json:"stateDetails,omitempty"`
 	Tags             map[string]*string `json:"tags,omitempty"`
 	VirtualClusterID *string            `json:"virtualClusterID,omitempty"`
+}
+
+// The information about job driver for Spark submit.
+type SparkSubmitJobDriver struct {
+	EntryPoint            *string   `json:"entryPoint,omitempty"`
+	EntryPointArguments   []*string `json:"entryPointArguments,omitempty"`
+	SparkSubmitParameters *string   `json:"sparkSubmitParameters,omitempty"`
 }
 
 // This entity describes a virtual cluster. A virtual cluster is a Kubernetes
