@@ -44,6 +44,8 @@ class EMREnabledEKSCluster(Bootstrappable):
     emr_slr: ServiceLinkedRole = field(init=False, default=None)
 
     # Outputs
+    export_oidc_arn: Union[str, None] = field(default=None, init=False)
+    export_account_id: Union[str, None] = field(default=None, init=False)
 
     def __post_init__(self):
         self.cluster = EKSCluster(f'{self.name_prefix}-cluster')
@@ -52,6 +54,10 @@ class EMREnabledEKSCluster(Bootstrappable):
     @property
     def eks_client(self):
         return boto3.client("eks", region_name=self.region)
+
+    @property
+    def iam_client(self):
+        return boto3.client("iam")
 
     @property
     def eks_resource(self):
@@ -80,6 +86,28 @@ class EMREnabledEKSCluster(Bootstrappable):
         kconfig.ssl_ca_cert = cafile
         return kubernetes.client.ApiClient(configuration=kconfig)
 
+    # create OIDC provider arn
+    def _create_oidc(self,oidc_url):
+        oidcResponse = self.iam_client.create_open_id_connect_provider(Url=oidc_url,
+        ClientIDList=['sts.amazonaws.com',],
+        ThumbprintList=['9e99a48a9960b14926bb7f3b02e22da2b0ab7280',])
+
+        oidc_arn = oidcResponse['OpenIDConnectProviderArn']
+        return oidc_arn
+
+    # get AWS Account ID
+    def _get_account_id(self, cluster_name):
+        self.cluster_info = {}
+        if cluster_name not in self.cluster_info:
+            self.cluster_info[cluster_name] = self.eks_client.describe_cluster(
+                name=cluster_name
+            )
+
+        cluster_arn = self.cluster_info[cluster_name].get("cluster", {}).get(
+            "arn", "")
+
+        return cluster_arn.split(':')[4]
+
     def bootstrap(self):
         """Creates an EKS cluster and installs the EMR components into it.
         """
@@ -87,6 +115,7 @@ class EMREnabledEKSCluster(Bootstrappable):
 
         cluster = self.eks_client.describe_cluster(name=self.cluster.name)
         cluster_endpoint = cluster["cluster"]["endpoint"]
+        oidc_url = cluster['cluster']['identity']['oidc']['issuer']
 
         cert_data = cluster["cluster"]["certificateAuthority"]["data"]
         ca_file = self._write_cafile(cert_data)
@@ -98,6 +127,12 @@ class EMREnabledEKSCluster(Bootstrappable):
         )
 
         core_v1 = kubernetes.client.CoreV1Api(api_client)
+
+        # Create OIDC provider ARN for Outputs
+        self.export_oidc_arn = self._create_oidc(oidc_url)
+
+        # Get AWS Account ID for Outputs
+        self.export_account_id = self._get_account_id(self.cluster.name)
 
         # Create the EMR namespace
         namespaces = core_v1.list_namespace()

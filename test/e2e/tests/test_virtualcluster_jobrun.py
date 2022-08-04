@@ -18,7 +18,6 @@ import boto3
 import logging
 import time
 from typing import Dict
-
 import pytest
 
 from acktest.k8s import resource as k8s
@@ -36,10 +35,52 @@ MODIFY_WAIT_AFTER_SECONDS = 10
 # Time to wait after the zone has changed status, for the CR to update
 CHECK_STATUS_WAIT_SECONDS = 10
 
+def iam_client(self):
+    return boto3.client("iam")
+
+def sts_client(self):
+    return boto3.client("sts")
+
+class Base36():
+    def str_to_int(self, request):
+        """Method to convert given string into decimal representation"""
+        result = 0
+        for char in request:
+            result = result * 256 + ord(char)
+
+        return result
+
+    def encode(self, request):
+        """Method to return base36 encoded form of the input string"""
+        decimal_number = self.str_to_int(str(request))
+        alphabet, base36 = ['0123456789abcdefghijklmnopqrstuvwxyz', '']
+
+        while decimal_number:
+            decimal_number, i = divmod(decimal_number, 36)
+            base36 = alphabet[i] + base36
+
+        return base36 or alphabet[0]
+
+def _update_assume_role():
+    job_execution_role = get_bootstrap_resources().JobExecutionRole.arn
+    oidc_provider_arn = get_bootstrap_resources().HostCluster.export_oidc_arn
+    base36 = Base36()
+    base36_encoded_role = base36.encode(job_execution_role)
+    account_id = get_bootstrap_resources().HostCluster.export_account_id
+
+    job_execution_trust_policy =  { "Version": "2012-10-17","Statement": [ {"Sid": "", "Effect": "Allow", "Principal": { "Federated": oidc_provider_arn}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": { "StringEquals": { oidc_provider_arn.split('oidc-provider/')[1] +":sub": "system:serviceaccount:" + "emr-ns" + ":" + "emr-containers-sa-*-*-" + account_id + "-" + base36_encoded_role }}}]}
+
+    try:
+        aws_res = iam_client.update_assume_role_policy(RoleName=job_execution_role,PolicyDocument=job_execution_trust_policy)
+        assert aws_res is not None
+    except iam_client.exceptions.NoSuchEntityException:
+        pass
+
 @pytest.fixture
 def virtualcluster_jobrun():
     virtual_cluster_name = random_suffix_name("emr-virtual-cluster", 32)
     job_run_name = random_suffix_name("emr-job-run", 32)
+    hostcluster_data = get_bootstrap_resources()
 
     replacements = REPLACEMENT_VALUES.copy()
     replacements["VIRTUALCLUSTER_NAME"] = virtual_cluster_name
@@ -63,21 +104,15 @@ def virtualcluster_jobrun():
     assert k8s.get_resource_exists(vc_ref)
 
     virtual_cluster_id = vc_cr["status"]["id"]
-    print(virtual_cluster_id)
     emr_release_label = "emr-6.3.0-latest"
-    job_exection_role = get_bootstrap_resources().JobExecutionRole.arn
-
-    try:
-        aws_res = emrcontainers_client.update_role_trust_policy(cluster-name=EKS_CLUSTER_NAME,namespace=emr-ns)
-        assert aws_res is not None
-    except emrcontainers_client.exceptions.ResourceNotFoundException:
-        pass
+    eks_clustername = get_bootstrap_resources().HostCluster.cluster.name
+    job_execution_role = get_bootstrap_resources().JobExecutionRole.arn
 
     replacements = REPLACEMENT_VALUES.copy()
     replacements["JOBRUN_NAME"] = job_run_name
     replacements["VIRTUALCLUSTER_ID"] = virtual_cluster_id
     replacements["EMR_RELEASE_LABEL"] = emr_release_label
-    replacements["JOB_EXECUTION_ROLE"] = job_exection_role
+    replacements["JOB_EXECUTION_ROLE"] = job_execution_role
 
     resource_data = load_resource(
         "job_run",
@@ -98,6 +133,9 @@ def virtualcluster_jobrun():
 
     yield (vc_ref, vc_cr, jr_ref, jr_cr)
 
+    # introducing sleep for emr job to finish
+    time.sleep(180)
+
     # Try to delete, if doesn't already exist
     try:
         _, deleted = k8s.delete_custom_resource(jr_ref, 3, 10)
@@ -115,6 +153,9 @@ def virtualcluster_jobrun():
 @service_marker
 @pytest.mark.canary
 class TestVirtualCluster:
+    def update_iam_trust(self, _update_assume_role, iam_client):
+         _update_assume_role()
+
     def test_create_delete_virtualcluster_jobrun(self, virtualcluster_jobrun, emrcontainers_client):
         (vc_ref, vc_cr, jr_ref, jr_cr) = virtualcluster_jobrun
         assert vc_cr, jr_cr
