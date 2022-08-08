@@ -22,6 +22,7 @@ import pytest
 
 from acktest.k8s import resource as k8s
 from acktest.resources import random_suffix_name
+from acktest.aws.identity import get_account_id
 from e2e import service_marker, CRD_GROUP, CRD_VERSION, load_resource
 from e2e.replacement_values import REPLACEMENT_VALUES
 from e2e.bootstrap_resources import get_bootstrap_resources
@@ -33,7 +34,7 @@ JR_RESOURCE_PLURAL = "jobruns"
 MODIFY_WAIT_AFTER_SECONDS = 10
 
 # Time to wait after the zone has changed status, for the CR to update
-CHECK_STATUS_WAIT_SECONDS = 10
+CHECK_STATUS_WAIT_SECONDS = 180
 
 def iam_client(self):
     return boto3.client("iam")
@@ -66,7 +67,7 @@ def _update_assume_role():
     oidc_provider_arn = get_bootstrap_resources().HostCluster.export_oidc_arn
     base36 = Base36()
     base36_encoded_role = base36.encode(job_execution_role)
-    account_id = get_bootstrap_resources().HostCluster.export_account_id
+    account_id = get_account_id()
 
     job_execution_trust_policy =  { "Version": "2012-10-17","Statement": [ {"Sid": "", "Effect": "Allow", "Principal": { "Federated": oidc_provider_arn}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": { "StringEquals": { oidc_provider_arn.split('oidc-provider/')[1] +":sub": "system:serviceaccount:" + "emr-ns" + ":" + "emr-containers-sa-*-*-" + account_id + "-" + base36_encoded_role }}}]}
 
@@ -134,7 +135,7 @@ def virtualcluster_jobrun():
     yield (vc_ref, vc_cr, jr_ref, jr_cr)
 
     # introducing sleep for emr job to finish
-    time.sleep(180)
+    time.sleep(CHECK_STATUS_WAIT_SECONDS)
 
     # Try to delete, if doesn't already exist
     try:
@@ -154,7 +155,8 @@ def virtualcluster_jobrun():
 @pytest.mark.canary
 class TestVirtualCluster:
     def update_iam_trust(self, _update_assume_role, iam_client):
-         _update_assume_role()
+        update_trust = self._update_assume_role(iam_client)
+        assert update_trust
 
     def test_create_delete_virtualcluster_jobrun(self, virtualcluster_jobrun, emrcontainers_client):
         (vc_ref, vc_cr, jr_ref, jr_cr) = virtualcluster_jobrun

@@ -45,7 +45,6 @@ class EMREnabledEKSCluster(Bootstrappable):
 
     # Outputs
     export_oidc_arn: Union[str, None] = field(default=None, init=False)
-    export_account_id: Union[str, None] = field(default=None, init=False)
 
     def __post_init__(self):
         self.cluster = EKSCluster(f'{self.name_prefix}-cluster')
@@ -95,19 +94,6 @@ class EMREnabledEKSCluster(Bootstrappable):
         oidc_arn = oidcResponse['OpenIDConnectProviderArn']
         return oidc_arn
 
-    # get AWS Account ID
-    def _get_account_id(self, cluster_name):
-        self.cluster_info = {}
-        if cluster_name not in self.cluster_info:
-            self.cluster_info[cluster_name] = self.eks_client.describe_cluster(
-                name=cluster_name
-            )
-
-        cluster_arn = self.cluster_info[cluster_name].get("cluster", {}).get(
-            "arn", "")
-
-        return cluster_arn.split(':')[4]
-
     def bootstrap(self):
         """Creates an EKS cluster and installs the EMR components into it.
         """
@@ -130,9 +116,6 @@ class EMREnabledEKSCluster(Bootstrappable):
 
         # Create OIDC provider ARN for Outputs
         self.export_oidc_arn = self._create_oidc(oidc_url)
-
-        # Get AWS Account ID for Outputs
-        self.export_account_id = self._get_account_id(self.cluster.name)
 
         # Create the EMR namespace
         namespaces = core_v1.list_namespace()
