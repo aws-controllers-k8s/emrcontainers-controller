@@ -55,12 +55,12 @@ class EMREnabledEKSCluster(Bootstrappable):
         return boto3.client("eks", region_name=self.region)
 
     @property
-    def iam_client(self):
-        return boto3.client("iam")
-
-    @property
     def eks_resource(self):
         return boto3.resource("eks", region_name=self.region)
+        
+    @property
+    def iam_client(self):
+        return boto3.client("iam")
 
     def _write_cafile(self, data: str) -> tempfile.NamedTemporaryFile:
         cafile = tempfile.NamedTemporaryFile(delete=False)

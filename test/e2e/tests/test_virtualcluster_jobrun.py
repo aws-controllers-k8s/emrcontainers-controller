@@ -36,11 +36,9 @@ MODIFY_WAIT_AFTER_SECONDS = 10
 # Time to wait after the zone has changed status, for the CR to update
 CHECK_STATUS_WAIT_SECONDS = 180
 
-def iam_client(self):
+@pytest.fixture
+def iam_client():
     return boto3.client("iam")
-
-def sts_client(self):
-    return boto3.client("sts")
 
 class Base36():
     def str_to_int(self, request):
@@ -62,6 +60,7 @@ class Base36():
 
         return base36 or alphabet[0]
 
+@pytest.fixture
 def _update_assume_role():
     job_execution_role = get_bootstrap_resources().JobExecutionRole.arn
     oidc_provider_arn = get_bootstrap_resources().HostCluster.export_oidc_arn
@@ -71,11 +70,7 @@ def _update_assume_role():
 
     job_execution_trust_policy =  { "Version": "2012-10-17","Statement": [ {"Sid": "", "Effect": "Allow", "Principal": { "Federated": oidc_provider_arn}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": { "StringEquals": { oidc_provider_arn.split('oidc-provider/')[1] +":sub": "system:serviceaccount:" + "emr-ns" + ":" + "emr-containers-sa-*-*-" + account_id + "-" + base36_encoded_role }}}]}
 
-    try:
-        aws_res = iam_client.update_assume_role_policy(RoleName=job_execution_role,PolicyDocument=job_execution_trust_policy)
-        assert aws_res is not None
-    except iam_client.exceptions.NoSuchEntityException:
-        pass
+    yield (job_execution_role, job_execution_trust_policy)
 
 @pytest.fixture
 def virtualcluster_jobrun():
@@ -154,11 +149,17 @@ def virtualcluster_jobrun():
 @service_marker
 @pytest.mark.canary
 class TestVirtualCluster:
-    def update_iam_trust(self, _update_assume_role, iam_client):
-        update_trust = self._update_assume_role(iam_client)
-        assert update_trust
+    def test_create_delete_virtualcluster_jobrun(self, virtualcluster_jobrun, _update_assume_role, emrcontainers_client, iam_client):
 
-    def test_create_delete_virtualcluster_jobrun(self, virtualcluster_jobrun, emrcontainers_client):
+        (job_execution_role, job_execution_trust_policy) = _update_assume_role
+        assert job_execution_role, job_execution_trust_policy
+
+        try:
+            aws_res = iam_client.update_assume_role_policy(RoleName=job_execution_role,PolicyDocument=job_execution_trust_policy)
+            assert aws_res is not None
+        except Exception as e:
+            pass
+
         (vc_ref, vc_cr, jr_ref, jr_cr) = virtualcluster_jobrun
         assert vc_cr, jr_cr
 

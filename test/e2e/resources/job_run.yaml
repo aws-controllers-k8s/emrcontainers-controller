@@ -2,7 +2,6 @@ apiVersion: emrcontainers.services.k8s.aws/v1alpha1
 kind: JobRun
 metadata:
   name: $JOBRUN_NAME
-  # namespace: emr-ns
 spec:
   name: $JOBRUN_NAME
   virtualClusterID: $VIRTUALCLUSTER_ID

@@ -31,8 +31,17 @@ resources:
       - ResourceNotFoundException
       - InternalServerException
   JobRun:
+    fields:
+      Name:
+        is_immutable: true
+      VirtualClusterID:
+        is_immutable: true
+      ExecutionRoleARN:
+        is_immutable: true
+      ReleaseLabel:
+        is_immutable: true
+      JobDriver:
+        is_immutable: true
     exceptions:
       terminal_codes:
       - ValidationException
-      - ResourceNotFoundException
-      - InternalServerException

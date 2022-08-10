@@ -4,7 +4,7 @@
 
 image:
   repository: public.ecr.aws/aws-controllers-k8s/emrcontainers-controller
-  tag: v0.0.5
+  tag: v0.0.4
   pullPolicy: IfNotPresent
   pullSecrets: []
 
@@ -28,7 +28,7 @@ deployment:
   # Which priorityClassName to set?
   # See: https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#pod-priority
   priorityClassName: ""
-
+  
 metrics:
   service:
     # Set to true to automatically create a Kubernetes Service resource for the
@@ -56,7 +56,7 @@ aws:
     # Secret stringData key that contains the credentials
     secretKey: "credentials"
     # Profile used for AWS credentials
-    profile: "default"
+    profile: "default"  
 
 # log level for the controller
 log:
