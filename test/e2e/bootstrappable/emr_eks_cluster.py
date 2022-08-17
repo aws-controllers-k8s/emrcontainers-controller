@@ -45,6 +45,7 @@ class EMREnabledEKSCluster(Bootstrappable):
 
     # Outputs
     export_oidc_arn: Union[str, None] = field(default=None, init=False)
+    #emr_namespace: Union[str, None] = field(default=None, init=False)
 
     def __post_init__(self):
         self.cluster = EKSCluster(f'{self.name_prefix}-cluster')
@@ -57,7 +58,7 @@ class EMREnabledEKSCluster(Bootstrappable):
     @property
     def eks_resource(self):
         return boto3.resource("eks", region_name=self.region)
-        
+
     @property
     def iam_client(self):
         return boto3.client("iam")

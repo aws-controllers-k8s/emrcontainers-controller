@@ -15,6 +15,7 @@
 """
 
 import boto3
+import json
 import logging
 import time
 from typing import Dict
@@ -39,38 +40,6 @@ CHECK_STATUS_WAIT_SECONDS = 180
 @pytest.fixture
 def iam_client():
     return boto3.client("iam")
-
-class Base36():
-    def str_to_int(self, request):
-        """Method to convert given string into decimal representation"""
-        result = 0
-        for char in request:
-            result = result * 256 + ord(char)
-
-        return result
-
-    def encode(self, request):
-        """Method to return base36 encoded form of the input string"""
-        decimal_number = self.str_to_int(str(request))
-        alphabet, base36 = ['0123456789abcdefghijklmnopqrstuvwxyz', '']
-
-        while decimal_number:
-            decimal_number, i = divmod(decimal_number, 36)
-            base36 = alphabet[i] + base36
-
-        return base36 or alphabet[0]
-
-@pytest.fixture
-def _update_assume_role():
-    job_execution_role = get_bootstrap_resources().JobExecutionRole.arn
-    oidc_provider_arn = get_bootstrap_resources().HostCluster.export_oidc_arn
-    base36 = Base36()
-    base36_encoded_role = base36.encode(job_execution_role)
-    account_id = get_account_id()
-
-    job_execution_trust_policy =  { "Version": "2012-10-17","Statement": [ {"Sid": "", "Effect": "Allow", "Principal": { "Federated": oidc_provider_arn}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": { "StringEquals": { oidc_provider_arn.split('oidc-provider/')[1] +":sub": "system:serviceaccount:" + "emr-ns" + ":" + "emr-containers-sa-*-*-" + account_id + "-" + base36_encoded_role }}}]}
-
-    yield (job_execution_role, job_execution_trust_policy)
 
 @pytest.fixture
 def virtualcluster_jobrun():
@@ -129,7 +98,7 @@ def virtualcluster_jobrun():
 
     yield (vc_ref, vc_cr, jr_ref, jr_cr)
 
-    # introducing sleep for emr job to finish
+    # Introducing sleep for emr job to finish
     time.sleep(CHECK_STATUS_WAIT_SECONDS)
 
     # Try to delete, if doesn't already exist
@@ -148,17 +117,123 @@ def virtualcluster_jobrun():
 
 @service_marker
 @pytest.mark.canary
-class TestVirtualCluster:
-    def test_create_delete_virtualcluster_jobrun(self, virtualcluster_jobrun, _update_assume_role, emrcontainers_client, iam_client):
+class Test_VirtualCluster_JobRun:
 
-        (job_execution_role, job_execution_trust_policy) = _update_assume_role
-        assert job_execution_role, job_execution_trust_policy
+    def base36_str_to_int(self, request):
+        """Method to convert given string into decimal representation"""
+        result = 0
+        for char in request:
+            result = result * 256 + ord(char)
 
-        try:
-            aws_res = iam_client.update_assume_role_policy(RoleName=job_execution_role,PolicyDocument=job_execution_trust_policy)
-            assert aws_res is not None
-        except Exception as e:
-            pass
+        return result
+
+    def base36_encode(self, request):
+        """Method to return base36 encoded form of the input string"""
+        decimal_number = self.base36_str_to_int(str(request))
+        alphabet, base36 = ['0123456789abcdefghijklmnopqrstuvwxyz', '']
+
+        while decimal_number:
+            decimal_number, i = divmod(decimal_number, 36)
+            base36 = alphabet[i] + base36
+
+        return base36 or alphabet[0]
+
+    def check_if_statement_exists(self, expected_statement, actual_assume_role_document):
+        if actual_assume_role_document is None:
+            return False
+
+        existing_statements = actual_assume_role_document.get("Statement", [])
+        for existing_statement in existing_statements:
+            matches = self.check_if_dict_matches(expected_statement, existing_statement)
+            if matches:
+                return True
+        return False
+
+    def check_if_dict_matches(self, expected_dict, actual_dict):
+        if len(expected_dict) != len(actual_dict):
+            return False
+        for key in expected_dict:
+            key_str = str(key)
+            val = expected_dict[key_str]
+            if isinstance(val, dict):
+                if not check_if_dict_matches(val, actual_dict.get(key_str, {})):
+                    return False
+            else:
+                if key_str not in actual_dict or actual_dict[key_str] != str(val):
+                    return False
+        return True
+
+    def get_assume_role_policy(self, iam_client, job_execution_role_name):
+        """Method to retrieve trust policy of given role name"""
+        role = self.iam_client.get_role(RoleName=job_execution_role_name)
+        return role.get("Role").get("AssumeRolePolicyDocument")
+
+    def update_assume_role(self, iam_client):
+        job_execution_role_arn = get_bootstrap_resources().JobExecutionRole.arn
+        job_execution_role_name = job_execution_role_arn.split('role/')[1]
+        oidc_provider_arn = get_bootstrap_resources().HostCluster.export_oidc_arn
+        oidc_provider = oidc_provider_arn.split('oidc-provider/')[1]
+        emr_namespace = "emr-ns"
+        base36_encoded_role_name = self.base36_encode(job_execution_role_name)
+        print("base36_encoded_role_name =", base36_encoded_role_name)
+        account_id = get_account_id()
+        LOG = logging.getLogger(__name__)
+        TRUST_POLICY_STATEMENT_ALREADY_EXISTS = "Trust policy statement already " \
+                                            "exists for role %s. No changes " \
+                                            "were made!"
+        TRUST_POLICY_UPDATE_SUCCESSFUL = "Successfully updated trust policy of role %s"
+        TRUST_POLICY_STATEMENT_FORMAT = '{ \
+        "Effect": "Allow", \
+        "Principal": { \
+            "Federated": "%(OIDC_PROVIDER_ARN)s" \
+        }, \
+        "Action": "sts:AssumeRoleWithWebIdentity", \
+        "Condition": { \
+            "StringLike": { \
+                "%(OIDC_PROVIDER)s:sub": "system:serviceaccount:%(NAMESPACE)s' \
+                                    ':emr-containers-sa-*-*-%(AWS_ACCOUNT_ID)s-' \
+                                    '%(BASE36_ENCODED_ROLE_NAME)s" \
+            } \
+        } \
+        }'
+
+        job_execution_trust_policy = json.loads(TRUST_POLICY_STATEMENT_FORMAT % {
+                "AWS_ACCOUNT_ID": account_id,
+                "OIDC_PROVIDER_ARN": oidc_provider_arn,
+                "OIDC_PROVIDER": oidc_provider,
+                "NAMESPACE": emr_namespace,
+                "BASE36_ENCODED_ROLE_NAME": base36_encoded_role_name
+            })
+
+        # assume_role_document = self.get_assume_role_policy(iam_client, job_execution_role_name)
+        assume_role_policy = iam_client.get_role(RoleName=job_execution_role_name)
+        assume_role_document = assume_role_policy.get("Role").get("AssumeRolePolicyDocument")
+        print("assume_role_document =", assume_role_document)
+
+        matches = self.check_if_statement_exists(job_execution_trust_policy,
+                                                assume_role_document)
+
+        if not matches:
+            LOG.debug('Role %s does not have the required trust policy ',
+              job_execution_role_name)
+            existing_statements = assume_role_document.get("Statement")
+            print("existing_statements =", existing_statements)
+            if existing_statements is None:
+                assume_role_document["Statement"] = [job_execution_trust_policy]
+            else:
+                existing_statements.append(job_execution_trust_policy)
+
+            LOG.debug('Updating trust policy of role %s', job_execution_role_name)
+            iam_client.update_assume_role_policy(RoleName=job_execution_role_name, PolicyDocument=json.dumps(assume_role_document))
+            return TRUST_POLICY_UPDATE_SUCCESSFUL % job_execution_role_name
+        else:
+            return TRUST_POLICY_STATEMENT_ALREADY_EXISTS % job_execution_role_name
+
+    def test_create_delete_virtualcluster_jobrun(self, virtualcluster_jobrun, emrcontainers_client, iam_client):
+
+        # Update Job Execution Role
+        role_update = self.update_assume_role(iam_client)
+        assert role_update
 
         (vc_ref, vc_cr, jr_ref, jr_cr) = virtualcluster_jobrun
         assert vc_cr, jr_cr

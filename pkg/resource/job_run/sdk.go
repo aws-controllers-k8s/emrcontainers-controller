@@ -18,6 +18,7 @@ package job_run
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -25,6 +26,7 @@ import (
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
 	ackcondition "github.com/aws-controllers-k8s/runtime/pkg/condition"
 	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
+	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	"github.com/aws/aws-sdk-go/aws"
 	svcsdk "github.com/aws/aws-sdk-go/service/emrcontainers"
@@ -45,6 +47,8 @@ var (
 	_ = &ackerr.NotFound
 	_ = &ackcondition.NotManagedMessage
 	_ = &reflect.Value{}
+	_ = fmt.Sprintf("")
+	_ = &ackrequeue.NoRequeue{}
 )
 
 // sdkFind returns SDK-specific information about a supplied resource
@@ -463,64 +467,21 @@ func (rm *resourceManager) getImmutableFieldChanges(
 	delta *ackcompare.Delta,
 ) []string {
 	var fields []string
-	if delta.DifferentAt("ExecutionRoleARN") {
-		fields = append(fields, "ExecutionRoleARN")
-	}
-	if delta.DifferentAt("JobDriver") {
+	if delta.DifferentAt("Spec.JobDriver") {
 		fields = append(fields, "JobDriver")
 	}
-	if delta.DifferentAt("Name") {
+	if delta.DifferentAt("Spec.Name") {
 		fields = append(fields, "Name")
 	}
-	if delta.DifferentAt("ReleaseLabel") {
+	if delta.DifferentAt("Spec.ReleaseLabel") {
 		fields = append(fields, "ReleaseLabel")
 	}
-	if delta.DifferentAt("VirtualClusterID") {
+	if delta.DifferentAt("Spec.VirtualClusterID") {
 		fields = append(fields, "VirtualClusterID")
+	}
+	if delta.DifferentAt("Spec.ExecutionRoleARN") {
+		fields = append(fields, "ExecutionRoleARN")
 	}
 
 	return fields
-}
-
-// handleImmutableFieldsChangedCondition validates the immutable fields and set appropriate condition
-func (rm *resourceManager) handleImmutableFieldsChangedCondition(
-	r *resource,
-	delta *ackcompare.Delta,
-) *resource {
-
-	fields := rm.getImmutableFieldChanges(delta)
-	ko := r.ko.DeepCopy()
-	var advisoryCondition *ackv1alpha1.Condition = nil
-	for _, condition := range ko.Status.Conditions {
-		if condition.Type == ackv1alpha1.ConditionTypeAdvisory {
-			advisoryCondition = condition
-			break
-		}
-	}
-
-	// Remove the advisory condition if issue is no longer present
-	if len(fields) == 0 && advisoryCondition != nil {
-		var newConditions []*ackv1alpha1.Condition
-		for _, condition := range ko.Status.Conditions {
-			if condition.Type != ackv1alpha1.ConditionTypeAdvisory {
-				newConditions = append(newConditions, condition)
-			}
-		}
-		ko.Status.Conditions = newConditions
-	}
-
-	if len(fields) > 0 {
-		if advisoryCondition == nil {
-			advisoryCondition = &ackv1alpha1.Condition{
-				Type: ackv1alpha1.ConditionTypeAdvisory,
-			}
-			ko.Status.Conditions = append(ko.Status.Conditions, advisoryCondition)
-		}
-
-		advisoryCondition.Status = corev1.ConditionTrue
-		message := "Immutable Spec fields have been modified : " + strings.Join(fields, ",")
-		advisoryCondition.Message = &message
-	}
-
-	return &resource{ko}
 }
