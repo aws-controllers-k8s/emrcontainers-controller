@@ -115,6 +115,23 @@ def virtualcluster_jobrun():
     except:
         pass
 
+    # check if JobRun is deleted
+    virtual_cluster_id = vc_cr["status"]["id"]
+    jobrun_id = jr_cr["status"]["id"]
+    try:
+        jr_deleted = self.describe_job_run(id=jobrun_id,virtualClusterId=virtual_cluster_id)
+        logging.debug('%s is deleted during cleanup', job_run_name)
+        assert jr_deleted
+    except:
+        logging.debug('some resources such as %s did not cleanup as expected', job_run_name)
+    # check if VirtualCluster is deleted
+    try:
+        vc_deleted = self.describe_virtual_cluster(id=virtual_cluster_id)
+        logging.debug('%s is deleted during cleanup', virtual_cluster_name)
+        assert vc_deleted
+    except:
+        logging.debug('some resources such as %s did not cleanup as expected', virtual_cluster_name)
+
 @service_marker
 @pytest.mark.canary
 class Test_VirtualCluster_JobRun:
