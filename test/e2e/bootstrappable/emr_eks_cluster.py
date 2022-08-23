@@ -44,6 +44,8 @@ class EMREnabledEKSCluster(Bootstrappable):
     emr_slr: ServiceLinkedRole = field(init=False, default=None)
 
     # Outputs
+    export_oidc_arn: Union[str, None] = field(default=None, init=False)
+    #emr_namespace: Union[str, None] = field(default=None, init=False)
 
     def __post_init__(self):
         self.cluster = EKSCluster(f'{self.name_prefix}-cluster')
@@ -56,6 +58,10 @@ class EMREnabledEKSCluster(Bootstrappable):
     @property
     def eks_resource(self):
         return boto3.resource("eks", region_name=self.region)
+
+    @property
+    def iam_client(self):
+        return boto3.client("iam")
 
     def _write_cafile(self, data: str) -> tempfile.NamedTemporaryFile:
         cafile = tempfile.NamedTemporaryFile(delete=False)
@@ -80,6 +86,15 @@ class EMREnabledEKSCluster(Bootstrappable):
         kconfig.ssl_ca_cert = cafile
         return kubernetes.client.ApiClient(configuration=kconfig)
 
+    # create OIDC provider arn
+    def _create_oidc(self,oidc_url):
+        oidcResponse = self.iam_client.create_open_id_connect_provider(Url=oidc_url,
+        ClientIDList=['sts.amazonaws.com',],
+        ThumbprintList=['9e99a48a9960b14926bb7f3b02e22da2b0ab7280',])
+
+        oidc_arn = oidcResponse['OpenIDConnectProviderArn']
+        return oidc_arn
+
     def bootstrap(self):
         """Creates an EKS cluster and installs the EMR components into it.
         """
@@ -87,6 +102,7 @@ class EMREnabledEKSCluster(Bootstrappable):
 
         cluster = self.eks_client.describe_cluster(name=self.cluster.name)
         cluster_endpoint = cluster["cluster"]["endpoint"]
+        oidc_url = cluster['cluster']['identity']['oidc']['issuer']
 
         cert_data = cluster["cluster"]["certificateAuthority"]["data"]
         ca_file = self._write_cafile(cert_data)
@@ -98,6 +114,9 @@ class EMREnabledEKSCluster(Bootstrappable):
         )
 
         core_v1 = kubernetes.client.CoreV1Api(api_client)
+
+        # Create OIDC provider ARN for Outputs
+        self.export_oidc_arn = self._create_oidc(oidc_url)
 
         # Create the EMR namespace
         namespaces = core_v1.list_namespace()

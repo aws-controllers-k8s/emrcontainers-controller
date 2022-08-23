@@ -1,16 +1,27 @@
 ignore:
   field_paths:
     - CreateVirtualClusterInput.ClientToken
-    - JobRun.ClientToken
+    - StartJobRunInput.ClientToken
+    - JobRun.ConfigurationOverrides
+    - StartJobRunInput.ConfigurationOverrides
   operations: null
   resource_names:
   # - VirtualCluster
+  # - JobRun
   - ManagedEndpoint
   shape_names: null
 model_name: emr-containers
 operations:
   DescribeVirtualCluster:
     output_wrapper_field_path: VirtualCluster
+  StartJobRun:
+    operation_type: Create
+    resource_name: JobRun
+  CancelJobRun:
+    operation_type: Delete
+    resource_name: JobRun
+  DescribeJobRun:
+    output_wrapper_field_path: JobRun
 prefix_config: {}
 resources:
   VirtualCluster:
@@ -19,3 +30,18 @@ resources:
       - ValidationException
       - ResourceNotFoundException
       - InternalServerException
+  JobRun:
+    fields:
+      Name:
+        is_immutable: true
+      VirtualClusterID:
+        is_immutable: true
+      ExecutionRoleARN:
+        is_immutable: true
+      ReleaseLabel:
+        is_immutable: true
+      JobDriver:
+        is_immutable: true
+    exceptions:
+      terminal_codes:
+      - ValidationException
