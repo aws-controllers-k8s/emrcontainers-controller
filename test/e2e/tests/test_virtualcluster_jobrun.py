@@ -185,10 +185,9 @@ class Test_VirtualCluster_JobRun:
         role = self.iam_client.get_role(RoleName=job_execution_role_name)
         return role.get("Role").get("AssumeRolePolicyDocument")
 
-    def update_assume_role(self, iam_client):
+    def update_assume_role(self, oidc_provider_arn, iam_client):
         job_execution_role_arn = get_bootstrap_resources().JobExecutionRole.arn
         job_execution_role_name = job_execution_role_arn.split('role/')[1]
-        oidc_provider_arn = get_bootstrap_resources().HostCluster.export_oidc_arn
         oidc_provider = oidc_provider_arn.split('oidc-provider/')[1]
         emr_namespace = "emr-ns"
         base36_encoded_role_name = self.base36_encode(job_execution_role_name)
@@ -247,9 +246,10 @@ class Test_VirtualCluster_JobRun:
             return TRUST_POLICY_STATEMENT_ALREADY_EXISTS % job_execution_role_name
 
     def test_create_delete_virtualcluster_jobrun(self, virtualcluster_jobrun, emrcontainers_client, iam_client):
+        oidc_provider_arn = get_bootstrap_resources().HostCluster.export_oidc_arn
 
         # Update Job Execution Role
-        role_update = self.update_assume_role(iam_client)
+        role_update = self.update_assume_role(oidc_provider_arn, iam_client)
         assert role_update
 
         (vc_ref, vc_cr, jr_ref, jr_cr) = virtualcluster_jobrun
@@ -272,3 +272,10 @@ class Test_VirtualCluster_JobRun:
             assert aws_res is not None
         except emrcontainers_client.exceptions.ResourceNotFoundException:
             pytest.fail(f"Could not find job run with ID '{jobrun_id}' in EMR on EKS")
+
+        # delete oidc provider
+        try:
+            aws_res = iam_client.delete_open_id_connect_provider(OpenIDConnectProviderArn=oidc_provider_arn)
+            assert aws_res is not None
+        except iam_client.exceptions.InvalidInputException:
+            pytest.fail(f"Could not delete oidc identity provider")
