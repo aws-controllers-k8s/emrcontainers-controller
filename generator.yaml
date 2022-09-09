@@ -42,10 +42,10 @@ resources:
         is_immutable: true
       JobDriver:
         is_immutable: true
-      virtualClusterID:
+      VirtualClusterId:
         references:
           resource: VirtualCluster
-          path: Status.Id
+          path: Status.ID
     exceptions:
       terminal_codes:
       - ValidationException
