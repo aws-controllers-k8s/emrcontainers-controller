@@ -1,0 +1,65 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateServiceLinkedRole"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringLike": {
+                    "iam:AWSServiceName": "emr-containers.amazonaws.com"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "emr-containers:CreateVirtualCluster",
+                "emr-containers:ListVirtualClusters",
+                "emr-containers:DescribeVirtualCluster",
+                "emr-containers:DeleteVirtualCluster"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "emr-containers:StartJobRun",
+                "emr-containers:ListJobRuns",
+                "emr-containers:DescribeJobRun",
+                "emr-containers:CancelJobRun"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "emr-containers:DescribeJobRun",
+                "emr-containers:TagResource",
+                "elasticmapreduce:CreatePersistentAppUI",
+                "elasticmapreduce:DescribePersistentAppUI",
+                "elasticmapreduce:GetPersistentAppUIPresignedURL"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:ListBucket"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:Get*",
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
