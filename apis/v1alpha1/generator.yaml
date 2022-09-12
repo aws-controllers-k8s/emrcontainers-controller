@@ -34,8 +34,11 @@ resources:
     fields:
       Name:
         is_immutable: true
-      VirtualClusterID:
+      VirtualClusterId:
         is_immutable: true
+        references:
+          resource: VirtualCluster
+          path: Status.ID
       ExecutionRoleARN:
         is_immutable: true
       ReleaseLabel:

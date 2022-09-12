@@ -40,8 +40,8 @@ type JobRunSpec struct {
 	// The tags assigned to job runs.
 	Tags map[string]*string `json:"tags,omitempty"`
 	// The virtual cluster ID for which the job run request is submitted.
-	// +kubebuilder:validation:Required
-	VirtualClusterID *string `json:"virtualClusterID"`
+	VirtualClusterID  *string                                  `json:"virtualClusterID,omitempty"`
+	VirtualClusterRef *ackv1alpha1.AWSResourceReferenceWrapper `json:"virtualClusterRef,omitempty"`
 }
 
 // JobRunStatus defines the observed state of JobRun
