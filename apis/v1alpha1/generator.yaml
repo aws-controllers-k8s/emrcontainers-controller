@@ -34,18 +34,17 @@ resources:
     fields:
       Name:
         is_immutable: true
-      VirtualClusterID:
+      VirtualClusterId:
         is_immutable: true
+        references:
+          resource: VirtualCluster
+          path: Status.ID
       ExecutionRoleARN:
         is_immutable: true
       ReleaseLabel:
         is_immutable: true
       JobDriver:
         is_immutable: true
-      VirtualClusterId:
-        references:
-          resource: VirtualCluster
-          path: Status.ID
     exceptions:
       terminal_codes:
       - ValidationException

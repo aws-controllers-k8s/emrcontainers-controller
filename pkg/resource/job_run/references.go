@@ -17,8 +17,15 @@ package job_run
 
 import (
 	"context"
+	"fmt"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	ackv1alpha1 "github.com/aws-controllers-k8s/runtime/apis/core/v1alpha1"
+	ackcondition "github.com/aws-controllers-k8s/runtime/pkg/condition"
+	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	acktypes "github.com/aws-controllers-k8s/runtime/pkg/types"
 
 	svcapitypes "github.com/aws-controllers-k8s/emrcontainers-controller/apis/v1alpha1"
@@ -36,17 +43,95 @@ func (rm *resourceManager) ResolveReferences(
 	apiReader client.Reader,
 	res acktypes.AWSResource,
 ) (acktypes.AWSResource, error) {
-	return res, nil
+	namespace := res.MetaObject().GetNamespace()
+	ko := rm.concreteResource(res).ko.DeepCopy()
+	err := validateReferenceFields(ko)
+	if err == nil {
+		err = resolveReferenceForVirtualClusterID(ctx, apiReader, namespace, ko)
+	}
+
+	// If there was an error while resolving any reference, reset all the
+	// resolved values so that they do not get persisted inside etcd
+	if err != nil {
+		ko = rm.concreteResource(res).ko.DeepCopy()
+	}
+	if hasNonNilReferences(ko) {
+		return ackcondition.WithReferencesResolvedCondition(&resource{ko}, err)
+	}
+	return &resource{ko}, err
 }
 
 // validateReferenceFields validates the reference field and corresponding
 // identifier field.
 func validateReferenceFields(ko *svcapitypes.JobRun) error {
+	if ko.Spec.VirtualClusterRef != nil && ko.Spec.VirtualClusterID != nil {
+		return ackerr.ResourceReferenceAndIDNotSupportedFor("VirtualClusterID", "VirtualClusterRef")
+	}
+	if ko.Spec.VirtualClusterRef == nil && ko.Spec.VirtualClusterID == nil {
+		return ackerr.ResourceReferenceOrIDRequiredFor("VirtualClusterID", "VirtualClusterRef")
+	}
 	return nil
 }
 
 // hasNonNilReferences returns true if resource contains a reference to another
 // resource
 func hasNonNilReferences(ko *svcapitypes.JobRun) bool {
-	return false
+	return false || (ko.Spec.VirtualClusterRef != nil)
+}
+
+// resolveReferenceForVirtualClusterID reads the resource referenced
+// from VirtualClusterRef field and sets the VirtualClusterID
+// from referenced resource
+func resolveReferenceForVirtualClusterID(
+	ctx context.Context,
+	apiReader client.Reader,
+	namespace string,
+	ko *svcapitypes.JobRun,
+) error {
+	if ko.Spec.VirtualClusterRef != nil &&
+		ko.Spec.VirtualClusterRef.From != nil {
+		arr := ko.Spec.VirtualClusterRef.From
+		if arr == nil || arr.Name == nil || *arr.Name == "" {
+			return fmt.Errorf("provided resource reference is nil or empty")
+		}
+		namespacedName := types.NamespacedName{
+			Namespace: namespace,
+			Name:      *arr.Name,
+		}
+		obj := svcapitypes.VirtualCluster{}
+		err := apiReader.Get(ctx, namespacedName, &obj)
+		if err != nil {
+			return err
+		}
+		var refResourceSynced, refResourceTerminal bool
+		for _, cond := range obj.Status.Conditions {
+			if cond.Type == ackv1alpha1.ConditionTypeResourceSynced &&
+				cond.Status == corev1.ConditionTrue {
+				refResourceSynced = true
+			}
+			if cond.Type == ackv1alpha1.ConditionTypeTerminal &&
+				cond.Status == corev1.ConditionTrue {
+				refResourceTerminal = true
+			}
+		}
+		if refResourceTerminal {
+			return ackerr.ResourceReferenceTerminalFor(
+				"VirtualCluster",
+				namespace, *arr.Name)
+		}
+		if !refResourceSynced {
+			return ackerr.ResourceReferenceNotSyncedFor(
+				"VirtualCluster",
+				namespace, *arr.Name)
+		}
+		if obj.Status.ID == nil {
+			return ackerr.ResourceReferenceMissingTargetFieldFor(
+				"VirtualCluster",
+				namespace, *arr.Name,
+				"Status.ID")
+		}
+		referencedValue := string(*obj.Status.ID)
+		ko.Spec.VirtualClusterID = &referencedValue
+	}
+	return nil
 }
