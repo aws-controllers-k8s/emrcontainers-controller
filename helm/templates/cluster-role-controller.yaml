@@ -11,6 +11,7 @@ metadata:
   name: ack-emrcontainers-controller
   namespace: {{ .Release.Namespace }}
 {{ end }}
+rules:
 - apiGroups:
   - ""
   resources:
