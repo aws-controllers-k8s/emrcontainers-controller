@@ -479,8 +479,8 @@ func (rm *resourceManager) getImmutableFieldChanges(
 	if delta.DifferentAt("Spec.ReleaseLabel") {
 		fields = append(fields, "ReleaseLabel")
 	}
-	if delta.DifferentAt("Spec.VirtualClusterID") {
-		fields = append(fields, "VirtualClusterID")
+	if delta.DifferentAt("Spec.VirtualClusterId") {
+		fields = append(fields, "VirtualClusterId")
 	}
 
 	return fields

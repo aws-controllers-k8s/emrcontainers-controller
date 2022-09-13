@@ -101,6 +101,9 @@ func newResourceDelta(
 			delta.Add("Spec.VirtualClusterID", a.ko.Spec.VirtualClusterID, b.ko.Spec.VirtualClusterID)
 		}
 	}
+	if !reflect.DeepEqual(a.ko.Spec.VirtualClusterRef, b.ko.Spec.VirtualClusterRef) {
+		delta.Add("Spec.VirtualClusterRef", a.ko.Spec.VirtualClusterRef, b.ko.Spec.VirtualClusterRef)
+	}
 
 	return delta
 }
