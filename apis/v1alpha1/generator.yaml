@@ -45,6 +45,18 @@ resources:
         is_immutable: true
       JobDriver:
         is_immutable: true
+      # The default ConfigurationOverrides that is part of JobRun API's does not work well with ACK. By design a CRD must be describable using an OpenAPIv3 schema. ConfigurationOverrides has a property within ApplicationConfiguration called 'configurations' which is recursive and is the root of the issue. Hence, we are creating custom JSON blob to accomodate ConfigurationOverrides and we have to manually handle how to unmarshall this field so that customers can define all/any properties available
+      configurationOverrides:
+        type: "string"
+        is_immutable: true
+        is_required: False
+    hooks:
+      delta_pre_compare:
+        code: customPreCompare(delta, a, b)
+      sdk_create_post_build_request:
+        template_path: hooks/configurationOverrides/sdk_create_post_build_request.go.tpl
+      sdk_read_one_pre_set_output:
+        template_path: hooks/configurationOverrides/sdk_read_one_pre_set_output.go.tpl
     exceptions:
       terminal_codes:
       - ValidationException
