@@ -42,14 +42,13 @@ def iam_client():
     return boto3.client("iam")
 
 @pytest.fixture
-def virtualcluster_jobrun():
+def jobrun():
     virtual_cluster_name = random_suffix_name("emr-virtual-cluster", 32)
     job_run_name = random_suffix_name("emr-job-run", 32)
-    hostcluster_data = get_bootstrap_resources()
 
     replacements = REPLACEMENT_VALUES.copy()
     replacements["VIRTUALCLUSTER_NAME"] = virtual_cluster_name
-    replacements["EKS_CLUSTER_NAME"] = get_bootstrap_resources().HostCluster.cluster.name
+    replacements["EKS_CLUSTER_NAME"] = get_bootstrap_resources().HostCluster_JR.cluster.name
 
     resource_data = load_resource(
         "emr_virtual_cluster",
@@ -70,7 +69,7 @@ def virtualcluster_jobrun():
 
     virtual_cluster_id = vc_cr["status"]["id"]
     emr_release_label = "emr-6.3.0-latest"
-    eks_clustername = get_bootstrap_resources().HostCluster.cluster.name
+    eks_clustername = get_bootstrap_resources().HostCluster_JR.cluster.name
     job_execution_role = get_bootstrap_resources().JobExecutionRole.arn
 
     replacements = REPLACEMENT_VALUES.copy()
@@ -115,26 +114,9 @@ def virtualcluster_jobrun():
     except:
         pass
 
-    # check if JobRun is deleted
-    virtual_cluster_id = vc_cr["status"]["id"]
-    jobrun_id = jr_cr["status"]["id"]
-    try:
-        jr_deleted = self.describe_job_run(id=jobrun_id,virtualClusterId=virtual_cluster_id)
-        logging.debug('%s is deleted during cleanup', job_run_name)
-        assert jr_deleted
-    except:
-        logging.debug('some resources such as %s did not cleanup as expected', job_run_name)
-    # check if VirtualCluster is deleted
-    try:
-        vc_deleted = self.describe_virtual_cluster(id=virtual_cluster_id)
-        logging.debug('%s is deleted during cleanup', virtual_cluster_name)
-        assert vc_deleted
-    except:
-        logging.debug('some resources such as %s did not cleanup as expected', virtual_cluster_name)
-
 @service_marker
 @pytest.mark.canary
-class Test_VirtualCluster_JobRun:
+class Test_JobRun:
 
     def base36_str_to_int(self, request):
         """Method to convert given string into decimal representation"""
@@ -245,24 +227,18 @@ class Test_VirtualCluster_JobRun:
         else:
             return TRUST_POLICY_STATEMENT_ALREADY_EXISTS % job_execution_role_name
 
-    def test_create_delete_virtualcluster_jobrun(self, virtualcluster_jobrun, emrcontainers_client, iam_client):
-        oidc_provider_arn = get_bootstrap_resources().HostCluster.export_oidc_arn
+    def test_create_delete_jobrun(self, jobrun, emrcontainers_client, iam_client):
+        oidc_provider_arn = get_bootstrap_resources().HostCluster_JR.export_oidc_arn
 
         # Update Job Execution Role
         role_update = self.update_assume_role(oidc_provider_arn, iam_client)
         assert role_update
 
-        (vc_ref, vc_cr, jr_ref, jr_cr) = virtualcluster_jobrun
+        (vc_ref, vc_cr, jr_ref, jr_cr) = jobrun
         assert vc_cr, jr_cr
 
         virtual_cluster_id = vc_cr["status"]["id"]
         assert virtual_cluster_id
-
-        try:
-            aws_res = emrcontainers_client.describe_virtual_cluster(id=virtual_cluster_id)
-            assert aws_res is not None
-        except emrcontainers_client.exceptions.ResourceNotFoundException:
-            pytest.fail(f"Could not find virtual cluster with ID '{virtual_cluster_id}' in EMR on EKS")
 
         jobrun_id = jr_cr["status"]["id"]
         assert jobrun_id
@@ -279,3 +255,19 @@ class Test_VirtualCluster_JobRun:
             assert aws_res is not None
         except iam_client.exceptions.InvalidInputException:
             pytest.fail(f"Could not delete oidc identity provider")
+
+        # check if JobRun is deleted
+        try:
+            jr_deleted = emrcontainers_client.describe_job_run(id=jobrun_id,virtualClusterId=virtual_cluster_id)
+            logging.debug('%s is deleted during cleanup', jobrun_id)
+            assert jr_deleted
+        except:
+            logging.debug('some resources such as %s did not cleanup as expected', jobrun_id)
+            
+        # check if VirtualCluster is deleted
+        try:
+            vc_deleted = emrcontainers_client.describe_virtual_cluster(id=virtual_cluster_id)
+            logging.debug('%s is deleted during cleanup', virtual_cluster_id)
+            assert vc_deleted
+        except:
+            logging.debug('some resources such as %s did not cleanup as expected', virtual_cluster_id)
