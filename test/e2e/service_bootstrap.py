@@ -63,7 +63,8 @@ def service_bootstrap() -> Resources:
         JobExecutionRole=Role("ack-emrcontainers-job-execution-role", "ec2.amazonaws.com",
             user_policies=UserPolicies("ack-emrcontainers-job-execution-policy", [job_execution_policy])
         ),
-        HostCluster=EMREnabledEKSCluster("ack-emr-eks", "emr-ns")
+        HostCluster_VC=EMREnabledEKSCluster("ack-emr-eks", "emr-ns"),
+        HostCluster_JR=EMREnabledEKSCluster("ack-emr-eks", "emr-ns")
     )
 
     try:

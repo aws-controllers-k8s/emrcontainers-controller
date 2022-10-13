@@ -24,7 +24,8 @@ from e2e.bootstrappable.emr_eks_cluster import EMREnabledEKSCluster
 @dataclass
 class BootstrapResources(Resources):
     JobExecutionRole: Role
-    HostCluster: EMREnabledEKSCluster
+    HostCluster_VC: EMREnabledEKSCluster
+    HostCluster_JR: EMREnabledEKSCluster
 
 _bootstrap_resources = None
 
