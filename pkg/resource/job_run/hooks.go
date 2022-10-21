@@ -1,9 +1,6 @@
 package job_run
 
 import (
-	//"encoding/json"
-	// "fmt"
-
 	"reflect"
 
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
@@ -57,11 +54,11 @@ func customPreCompare(
 	if ackcompare.HasNilDifference(aConfig.MonitoringConfiguration, bConfig.MonitoringConfiguration) {
 		delta.Add("Spec.ConfigurationOverrides", aConfig.MonitoringConfiguration, bConfig.MonitoringConfiguration)
 	} else if aConfig.MonitoringConfiguration != nil && bConfig.MonitoringConfiguration != nil {
-		if ackcompare.HasNilDifference(aConfig.MonitoringConfiguration, bConfig.MonitoringConfiguration) {
+		if ackcompare.HasNilDifference(aConfig.MonitoringConfiguration.PersistentAppUI, bConfig.MonitoringConfiguration.PersistentAppUI) {
 			if aConfig.MonitoringConfiguration.PersistentAppUI == nil && *bConfig.MonitoringConfiguration.PersistentAppUI == "ENABLED" {
 				// We do not consider this as a difference because the API defaults PersistentAppUI to "ENABLED"
 			} else {
-				delta.Add("Spec.ConfigurationOverrides", aConfig.MonitoringConfiguration, bConfig.MonitoringConfiguration)
+				delta.Add("Spec.ConfigurationOverrides.PersistentAppUI", aConfig.MonitoringConfiguration.PersistentAppUI, bConfig.MonitoringConfiguration.PersistentAppUI)
 			}
 		} else if aConfig.MonitoringConfiguration.PersistentAppUI != nil && bConfig.MonitoringConfiguration.PersistentAppUI != nil {
 			if *aConfig.MonitoringConfiguration.PersistentAppUI != *bConfig.MonitoringConfiguration.PersistentAppUI {
@@ -128,20 +125,5 @@ func customPreCompare(
 		if !reflect.DeepEqual(aConfig.ApplicationConfiguration, bConfig.ApplicationConfiguration) {
 			delta.Add("Spec.ApplicationConfiguration", aConfig.ApplicationConfiguration, bConfig.ApplicationConfiguration)
 		}
-
-		// Alternative
-		/* 		for i := range aConfig.ApplicationConfiguration {
-			aElem := aConfig.ApplicationConfiguration[i]
-			bElem := bConfig.ApplicationConfiguration[i]
-
-			if ackcompare.HasNilDifference(
-				aElem,
-				bElem,
-			) {
-				delta.Add("Spec.ApplicationConfiguration", aConfig.ApplicationConfiguration, bConfig.ApplicationConfiguration)
-			} else if aElem != nil && bElem != nil {
-
-			}
-		} */
 	}
 }
