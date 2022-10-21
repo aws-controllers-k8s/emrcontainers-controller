@@ -9,7 +9,7 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-func cfgToString(cfg *svcsdk.ConfigurationOverrides) (*string, error) {
+func configurationOverridesToString(cfg *svcsdk.ConfigurationOverrides) (*string, error) {
 	configBytes, err := yaml.Marshal(cfg)
 	if err != nil {
 		return nil, err

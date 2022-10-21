@@ -88,7 +88,7 @@ func (rm *resourceManager) sdkFind(
 	ko := r.ko.DeepCopy()
 	// DescribeJobRun should output ConfigurationOverrides and show all available configuration
 	if resp.JobRun.ConfigurationOverrides != nil {
-		ko.Spec.ConfigurationOverrides, err = cfgToString(resp.JobRun.ConfigurationOverrides)
+		ko.Spec.ConfigurationOverrides, err = configurationOverridesToString(resp.JobRun.ConfigurationOverrides)
 		if err != nil {
 			return nil, err
 		}
@@ -481,9 +481,6 @@ func (rm *resourceManager) getImmutableFieldChanges(
 	delta *ackcompare.Delta,
 ) []string {
 	var fields []string
-	if delta.DifferentAt("Spec.ExecutionRoleARN") {
-		fields = append(fields, "ExecutionRoleARN")
-	}
 	if delta.DifferentAt("Spec.JobDriver") {
 		fields = append(fields, "JobDriver")
 	}
@@ -498,6 +495,9 @@ func (rm *resourceManager) getImmutableFieldChanges(
 	}
 	if delta.DifferentAt("Spec.configurationOverrides") {
 		fields = append(fields, "configurationOverrides")
+	}
+	if delta.DifferentAt("Spec.ExecutionRoleARN") {
+		fields = append(fields, "ExecutionRoleARN")
 	}
 
 	return fields
