@@ -14,12 +14,9 @@ spec:
       entryPoint: "local:///usr/lib/spark/examples/src/main/python/pi.py"
       entryPointArguments:
       sparkSubmitParameters: "--conf spark.executor.instances=2 --conf spark.executor.memory=1G --conf spark.executor.cores=1 --conf spark.driver.cores=1"
-  # configurationOverrides: |
-  #   ApplicationConfiguration: null
-  #   MonitoringConfiguration:
-  #     CloudWatchMonitoringConfiguration:
-  #       LogGroupName: /emr-containers/ack-emr-eks
-  #       LogStreamNamePrefix: change-csv-to-parquet
-  #     PersistentAppUI: ENABLED
-  #     S3MonitoringConfiguration:
-  #       LogUri: s3://emr-eks-logs/logs
+  configurationOverrides: |
+    ApplicationConfiguration: null
+    MonitoringConfiguration:
+      PersistentAppUI: ENABLED
+      S3MonitoringConfiguration:
+        LogUri: s3://$EMREKSS3BucketName/logs
