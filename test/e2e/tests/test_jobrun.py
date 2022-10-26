@@ -71,12 +71,14 @@ def jobrun():
     emr_release_label = "emr-6.3.0-latest"
     eks_clustername = get_bootstrap_resources().HostCluster_JR.cluster.name
     job_execution_role = get_bootstrap_resources().JobExecutionRole.arn
+    emr_eks_s3_logs_name = get_bootstrap_resources().EMREKSS3BucketName.name
 
     replacements = REPLACEMENT_VALUES.copy()
     replacements["JOBRUN_NAME"] = job_run_name
-    replacements["VIRTUALCLUSTER_ID"] = virtual_cluster_id
+    replacements["VIRTUALCLUSTER_NAME"] = virtual_cluster_name
     replacements["EMR_RELEASE_LABEL"] = emr_release_label
     replacements["JOB_EXECUTION_ROLE"] = job_execution_role
+    replacements["EMREKSS3BucketName"] = emr_eks_s3_logs_name
 
     resource_data = load_resource(
         "job_run",

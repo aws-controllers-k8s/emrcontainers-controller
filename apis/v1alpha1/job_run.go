@@ -42,6 +42,8 @@ type JobRunSpec struct {
 	// The virtual cluster ID for which the job run request is submitted.
 	VirtualClusterID  *string                                  `json:"virtualClusterID,omitempty"`
 	VirtualClusterRef *ackv1alpha1.AWSResourceReferenceWrapper `json:"virtualClusterRef,omitempty"`
+
+	ConfigurationOverrides *string `json:"configurationOverrides,omitempty"`
 }
 
 // JobRunStatus defines the observed state of JobRun

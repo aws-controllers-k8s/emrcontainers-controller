@@ -19,6 +19,7 @@ import time
 
 from acktest.bootstrapping import Resources, BootstrapFailureException
 from acktest.bootstrapping.iam import Role, UserPolicies
+from acktest.bootstrapping.s3 import Bucket
 from e2e import bootstrap_directory
 from e2e.bootstrap_resources import BootstrapResources
 from e2e.bootstrappable.emr_eks_cluster import EMREnabledEKSCluster
@@ -63,6 +64,7 @@ def service_bootstrap() -> Resources:
         JobExecutionRole=Role("ack-emrcontainers-job-execution-role", "ec2.amazonaws.com",
             user_policies=UserPolicies("ack-emrcontainers-job-execution-policy", [job_execution_policy])
         ),
+        EMREKSS3BucketName=Bucket("ack-emr-eks-logs"),
         HostCluster_VC=EMREnabledEKSCluster("ack-emr-eks", "emr-ns"),
         HostCluster_JR=EMREnabledEKSCluster("ack-emr-eks", "emr-ns")
     )
