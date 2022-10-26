@@ -50,6 +50,8 @@ resources:
         type: "string"
         is_immutable: true
         is_required: False
+        compare: 
+          is_ignored: true
     hooks:
       delta_pre_compare:
         code: customPreCompare(delta, a, b)

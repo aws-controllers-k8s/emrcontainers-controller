@@ -481,15 +481,6 @@ func (rm *resourceManager) getImmutableFieldChanges(
 	delta *ackcompare.Delta,
 ) []string {
 	var fields []string
-	if delta.DifferentAt("Spec.JobDriver") {
-		fields = append(fields, "JobDriver")
-	}
-	if delta.DifferentAt("Spec.Name") {
-		fields = append(fields, "Name")
-	}
-	if delta.DifferentAt("Spec.ReleaseLabel") {
-		fields = append(fields, "ReleaseLabel")
-	}
 	if delta.DifferentAt("Spec.VirtualClusterId") {
 		fields = append(fields, "VirtualClusterId")
 	}
@@ -498,6 +489,15 @@ func (rm *resourceManager) getImmutableFieldChanges(
 	}
 	if delta.DifferentAt("Spec.ExecutionRoleARN") {
 		fields = append(fields, "ExecutionRoleARN")
+	}
+	if delta.DifferentAt("Spec.JobDriver") {
+		fields = append(fields, "JobDriver")
+	}
+	if delta.DifferentAt("Spec.Name") {
+		fields = append(fields, "Name")
+	}
+	if delta.DifferentAt("Spec.ReleaseLabel") {
+		fields = append(fields, "ReleaseLabel")
 	}
 
 	return fields
