@@ -146,6 +146,11 @@ func (rm *resourceManager) sdkFind(
 	} else {
 		ko.Spec.ReleaseLabel = nil
 	}
+	if resp.JobRun.State != nil {
+		ko.Status.State = resp.JobRun.State
+	} else {
+		ko.Status.State = nil
+	}
 	if resp.JobRun.Tags != nil {
 		f13 := map[string]*string{}
 		for f13key, f13valiter := range resp.JobRun.Tags {
@@ -449,8 +454,13 @@ func (rm *resourceManager) updateConditions(
 			recoverableCondition.Message = nil
 		}
 	}
-	// Required to avoid the "declared but not used" error in the default case
-	_ = syncCondition
+	if syncCondition == nil && onSuccess {
+		syncCondition = &ackv1alpha1.Condition{
+			Type:   ackv1alpha1.ConditionTypeResourceSynced,
+			Status: corev1.ConditionTrue,
+		}
+		ko.Status.Conditions = append(ko.Status.Conditions, syncCondition)
+	}
 	if terminalCondition != nil || recoverableCondition != nil || syncCondition != nil {
 		return &resource{ko}, true // updated
 	}

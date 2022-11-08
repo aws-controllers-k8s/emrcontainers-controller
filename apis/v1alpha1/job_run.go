@@ -62,11 +62,16 @@ type JobRunStatus struct {
 	// This output displays the started job run ID.
 	// +kubebuilder:validation:Optional
 	ID *string `json:"id,omitempty"`
+	// The state of the job run.
+	// +kubebuilder:validation:Optional
+	State *string `json:"state,omitempty"`
 }
 
 // JobRun is the Schema for the JobRuns API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Job-ID",type=string,priority=0,JSONPath=`.status.id`
+// +kubebuilder:printcolumn:name="STATE",type=string,priority=0,JSONPath=`.status.state`
 type JobRun struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
