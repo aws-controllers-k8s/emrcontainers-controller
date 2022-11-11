@@ -26,6 +26,7 @@ import (
 // jar, PySpark script, or SparkSQL query, that you submit to Amazon EMR on
 // EKS.
 type JobRunSpec struct {
+	ConfigurationOverrides *string `json:"configurationOverrides,omitempty"`
 	// The execution role ARN for the job run.
 	// +kubebuilder:validation:Required
 	ExecutionRoleARN *string `json:"executionRoleARN"`
@@ -42,8 +43,6 @@ type JobRunSpec struct {
 	// The virtual cluster ID for which the job run request is submitted.
 	VirtualClusterID  *string                                  `json:"virtualClusterID,omitempty"`
 	VirtualClusterRef *ackv1alpha1.AWSResourceReferenceWrapper `json:"virtualClusterRef,omitempty"`
-
-	ConfigurationOverrides *string `json:"configurationOverrides,omitempty"`
 }
 
 // JobRunStatus defines the observed state of JobRun
@@ -62,11 +61,16 @@ type JobRunStatus struct {
 	// This output displays the started job run ID.
 	// +kubebuilder:validation:Optional
 	ID *string `json:"id,omitempty"`
+	// The state of the job run.
+	// +kubebuilder:validation:Optional
+	State *string `json:"state,omitempty"`
 }
 
 // JobRun is the Schema for the JobRuns API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Job-ID",type=string,priority=0,JSONPath=`.status.id`
+// +kubebuilder:printcolumn:name="STATE",type=string,priority=0,JSONPath=`.status.state`
 type JobRun struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

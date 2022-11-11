@@ -15,7 +15,14 @@ spec:
     singular: jobrun
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.id
+      name: Job-ID
+      type: string
+    - jsonPath: .status.state
+      name: STATE
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: JobRun is the Schema for the JobRuns API
@@ -158,6 +165,9 @@ spec:
                 type: array
               id:
                 description: This output displays the started job run ID.
+                type: string
+              state:
+                description: The state of the job run.
                 type: string
             type: object
         type: object
