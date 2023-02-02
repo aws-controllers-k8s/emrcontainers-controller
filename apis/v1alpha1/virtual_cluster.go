@@ -30,6 +30,7 @@ import (
 // contribute to your bill or that require lifecycle management outside the
 // service.
 type VirtualClusterSpec struct {
+
 	// The container provider of the virtual cluster.
 	// +kubebuilder:validation:Required
 	ContainerProvider *ContainerProvider `json:"containerProvider"`
