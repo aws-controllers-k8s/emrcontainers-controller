@@ -77,6 +77,9 @@ func (rm *resourceManager) sdkFind(
 	resp, err = rm.sdkapi.DescribeJobRunWithContext(ctx, input)
 	rm.metrics.RecordAPICall("READ_ONE", "DescribeJobRun", err)
 	if err != nil {
+		if reqErr, ok := ackerr.AWSRequestFailure(err); ok && reqErr.StatusCode() == 404 {
+			return nil, ackerr.NotFound
+		}
 		if awsErr, ok := ackerr.AWSError(err); ok && awsErr.Code() == "UNKNOWN" {
 			return nil, ackerr.NotFound
 		}
@@ -490,15 +493,6 @@ func (rm *resourceManager) getImmutableFieldChanges(
 	delta *ackcompare.Delta,
 ) []string {
 	var fields []string
-	if delta.DifferentAt("Spec.Name") {
-		fields = append(fields, "Name")
-	}
-	if delta.DifferentAt("Spec.ReleaseLabel") {
-		fields = append(fields, "ReleaseLabel")
-	}
-	if delta.DifferentAt("Spec.VirtualClusterId") {
-		fields = append(fields, "VirtualClusterId")
-	}
 	if delta.DifferentAt("Spec.ConfigurationOverrides") {
 		fields = append(fields, "ConfigurationOverrides")
 	}
@@ -507,6 +501,15 @@ func (rm *resourceManager) getImmutableFieldChanges(
 	}
 	if delta.DifferentAt("Spec.JobDriver") {
 		fields = append(fields, "JobDriver")
+	}
+	if delta.DifferentAt("Spec.Name") {
+		fields = append(fields, "Name")
+	}
+	if delta.DifferentAt("Spec.ReleaseLabel") {
+		fields = append(fields, "ReleaseLabel")
+	}
+	if delta.DifferentAt("Spec.VirtualClusterId") {
+		fields = append(fields, "VirtualClusterId")
 	}
 
 	return fields
