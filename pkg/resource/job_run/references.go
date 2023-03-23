@@ -88,50 +88,68 @@ func resolveReferenceForVirtualClusterID(
 	namespace string,
 	ko *svcapitypes.JobRun,
 ) error {
-	if ko.Spec.VirtualClusterRef != nil &&
-		ko.Spec.VirtualClusterRef.From != nil {
+	if ko.Spec.VirtualClusterRef != nil && ko.Spec.VirtualClusterRef.From != nil {
 		arr := ko.Spec.VirtualClusterRef.From
 		if arr == nil || arr.Name == nil || *arr.Name == "" {
-			return fmt.Errorf("provided resource reference is nil or empty")
+			return fmt.Errorf("provided resource reference is nil or empty: VirtualClusterRef")
 		}
-		namespacedName := types.NamespacedName{
-			Namespace: namespace,
-			Name:      *arr.Name,
-		}
-		obj := svcapitypes.VirtualCluster{}
-		err := apiReader.Get(ctx, namespacedName, &obj)
-		if err != nil {
+		obj := &svcapitypes.VirtualCluster{}
+		if err := getReferencedResourceState_VirtualCluster(ctx, apiReader, obj, *arr.Name, namespace); err != nil {
 			return err
 		}
-		var refResourceSynced, refResourceTerminal bool
-		for _, cond := range obj.Status.Conditions {
-			if cond.Type == ackv1alpha1.ConditionTypeResourceSynced &&
-				cond.Status == corev1.ConditionTrue {
-				refResourceSynced = true
-			}
-			if cond.Type == ackv1alpha1.ConditionTypeTerminal &&
-				cond.Status == corev1.ConditionTrue {
-				refResourceTerminal = true
-			}
+		ko.Spec.VirtualClusterID = (*string)(obj.Status.ID)
+	}
+
+	return nil
+}
+
+// getReferencedResourceState_VirtualCluster looks up whether a referenced resource
+// exists and is in a ACK.ResourceSynced=True state. If the referenced resource does exist and is
+// in a Synced state, returns nil, otherwise returns `ackerr.ResourceReferenceTerminalFor` or
+// `ResourceReferenceNotSyncedFor` depending on if the resource is in a Terminal state.
+func getReferencedResourceState_VirtualCluster(
+	ctx context.Context,
+	apiReader client.Reader,
+	obj *svcapitypes.VirtualCluster,
+	name string, // the Kubernetes name of the referenced resource
+	namespace string, // the Kubernetes namespace of the referenced resource
+) error {
+	namespacedName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	err := apiReader.Get(ctx, namespacedName, obj)
+	if err != nil {
+		return err
+	}
+	var refResourceSynced, refResourceTerminal bool
+	for _, cond := range obj.Status.Conditions {
+		if cond.Type == ackv1alpha1.ConditionTypeResourceSynced &&
+			cond.Status == corev1.ConditionTrue {
+			refResourceSynced = true
 		}
-		if refResourceTerminal {
+		if cond.Type == ackv1alpha1.ConditionTypeTerminal &&
+			cond.Status == corev1.ConditionTrue {
 			return ackerr.ResourceReferenceTerminalFor(
 				"VirtualCluster",
-				namespace, *arr.Name)
+				namespace, name)
 		}
-		if !refResourceSynced {
-			return ackerr.ResourceReferenceNotSyncedFor(
-				"VirtualCluster",
-				namespace, *arr.Name)
-		}
-		if obj.Status.ID == nil {
-			return ackerr.ResourceReferenceMissingTargetFieldFor(
-				"VirtualCluster",
-				namespace, *arr.Name,
-				"Status.ID")
-		}
-		referencedValue := string(*obj.Status.ID)
-		ko.Spec.VirtualClusterID = &referencedValue
+	}
+	if refResourceTerminal {
+		return ackerr.ResourceReferenceTerminalFor(
+			"VirtualCluster",
+			namespace, name)
+	}
+	if !refResourceSynced {
+		return ackerr.ResourceReferenceNotSyncedFor(
+			"VirtualCluster",
+			namespace, name)
+	}
+	if obj.Status.ID == nil {
+		return ackerr.ResourceReferenceMissingTargetFieldFor(
+			"VirtualCluster",
+			namespace, name,
+			"Status.ID")
 	}
 	return nil
 }
