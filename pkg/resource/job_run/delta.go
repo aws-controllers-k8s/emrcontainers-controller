@@ -64,8 +64,12 @@ func newResourceDelta(
 					delta.Add("Spec.JobDriver.SparkSubmitJobDriver.EntryPoint", a.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPoint, b.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPoint)
 				}
 			}
-			if !ackcompare.SliceStringPEqual(a.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments, b.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments) {
+			if len(a.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments) != len(b.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments) {
 				delta.Add("Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments", a.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments, b.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments)
+			} else if len(a.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments) > 0 {
+				if !ackcompare.SliceStringPEqual(a.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments, b.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments) {
+					delta.Add("Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments", a.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments, b.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments)
+				}
 			}
 			if ackcompare.HasNilDifference(a.ko.Spec.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters, b.ko.Spec.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters) {
 				delta.Add("Spec.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters", a.ko.Spec.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters, b.ko.Spec.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters)
