@@ -56,12 +56,11 @@ func (rm *resourceManager) ResolveReferences(
 	apiReader client.Reader,
 	res acktypes.AWSResource,
 ) (acktypes.AWSResource, bool, error) {
-	namespace := res.MetaObject().GetNamespace()
 	ko := rm.concreteResource(res).ko
 
 	resourceHasReferences := false
 	err := validateReferenceFields(ko)
-	if fieldHasReferences, err := rm.resolveReferenceForVirtualClusterID(ctx, apiReader, namespace, ko); err != nil {
+	if fieldHasReferences, err := rm.resolveReferenceForVirtualClusterID(ctx, apiReader, ko); err != nil {
 		return &resource{ko}, (resourceHasReferences || fieldHasReferences), err
 	} else {
 		resourceHasReferences = resourceHasReferences || fieldHasReferences
@@ -90,7 +89,6 @@ func validateReferenceFields(ko *svcapitypes.JobRun) error {
 func (rm *resourceManager) resolveReferenceForVirtualClusterID(
 	ctx context.Context,
 	apiReader client.Reader,
-	namespace string,
 	ko *svcapitypes.JobRun,
 ) (hasReferences bool, err error) {
 	if ko.Spec.VirtualClusterRef != nil && ko.Spec.VirtualClusterRef.From != nil {
@@ -98,6 +96,10 @@ func (rm *resourceManager) resolveReferenceForVirtualClusterID(
 		arr := ko.Spec.VirtualClusterRef.From
 		if arr.Name == nil || *arr.Name == "" {
 			return hasReferences, fmt.Errorf("provided resource reference is nil or empty: VirtualClusterRef")
+		}
+		namespace := ko.ObjectMeta.GetNamespace()
+		if arr.Namespace != nil && *arr.Namespace != "" {
+			namespace = *arr.Namespace
 		}
 		obj := &svcapitypes.VirtualCluster{}
 		if err := getReferencedResourceState_VirtualCluster(ctx, apiReader, obj, *arr.Name, namespace); err != nil {
