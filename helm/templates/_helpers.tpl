@@ -55,6 +55,7 @@ rules:
   - ""
   resources:
   - configmaps
+  - secrets
   verbs:
   - get
   - list
@@ -69,37 +70,9 @@ rules:
   - list
   - watch
 - apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
   - emrcontainers.services.k8s.aws
   resources:
   - jobruns
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - emrcontainers.services.k8s.aws
-  resources:
-  - jobruns/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - emrcontainers.services.k8s.aws
-  resources:
   - virtualclusters
   verbs:
   - create
@@ -112,6 +85,7 @@ rules:
 - apiGroups:
   - emrcontainers.services.k8s.aws
   resources:
+  - jobruns/status
   - virtualclusters/status
   verbs:
   - get
@@ -121,25 +95,6 @@ rules:
   - services.k8s.aws
   resources:
   - adoptedresources
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - services.k8s.aws
-  resources:
-  - adoptedresources/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - services.k8s.aws
-  resources:
   - fieldexports
   verbs:
   - create
@@ -152,6 +107,7 @@ rules:
 - apiGroups:
   - services.k8s.aws
   resources:
+  - adoptedresources/status
   - fieldexports/status
   verbs:
   - get
