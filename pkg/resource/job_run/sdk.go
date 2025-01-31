@@ -28,8 +28,10 @@ import (
 	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
-	"github.com/aws/aws-sdk-go/aws"
-	svcsdk "github.com/aws/aws-sdk-go/service/emrcontainers"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/emrcontainers"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/emrcontainers/types"
+	smithy "github.com/aws/smithy-go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,8 +42,7 @@ import (
 var (
 	_ = &metav1.Time{}
 	_ = strings.ToLower("")
-	_ = &aws.JSONValue{}
-	_ = &svcsdk.EMRContainers{}
+	_ = &svcsdk.Client{}
 	_ = &svcapitypes.JobRun{}
 	_ = ackv1alpha1.AWSAccountID("")
 	_ = &ackerr.NotFound
@@ -49,6 +50,7 @@ var (
 	_ = &reflect.Value{}
 	_ = fmt.Sprintf("")
 	_ = &ackrequeue.NoRequeue{}
+	_ = &aws.Config{}
 )
 
 // sdkFind returns SDK-specific information about a supplied resource
@@ -74,13 +76,11 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	var resp *svcsdk.DescribeJobRunOutput
-	resp, err = rm.sdkapi.DescribeJobRunWithContext(ctx, input)
+	resp, err = rm.sdkapi.DescribeJobRun(ctx, input)
 	rm.metrics.RecordAPICall("READ_ONE", "DescribeJobRun", err)
 	if err != nil {
-		if reqErr, ok := ackerr.AWSRequestFailure(err); ok && reqErr.StatusCode() == 404 {
-			return nil, ackerr.NotFound
-		}
-		if awsErr, ok := ackerr.AWSError(err); ok && awsErr.Code() == "UNKNOWN" {
+		var awsErr smithy.APIError
+		if errors.As(err, &awsErr) && awsErr.ErrorCode() == "UNKNOWN" {
 			return nil, ackerr.NotFound
 		}
 		return nil, err
@@ -122,13 +122,7 @@ func (rm *resourceManager) sdkFind(
 				f8f0.EntryPoint = resp.JobRun.JobDriver.SparkSubmitJobDriver.EntryPoint
 			}
 			if resp.JobRun.JobDriver.SparkSubmitJobDriver.EntryPointArguments != nil {
-				f8f0f1 := []*string{}
-				for _, f8f0f1iter := range resp.JobRun.JobDriver.SparkSubmitJobDriver.EntryPointArguments {
-					var f8f0f1elem string
-					f8f0f1elem = *f8f0f1iter
-					f8f0f1 = append(f8f0f1, &f8f0f1elem)
-				}
-				f8f0.EntryPointArguments = f8f0f1
+				f8f0.EntryPointArguments = aws.StringSlice(resp.JobRun.JobDriver.SparkSubmitJobDriver.EntryPointArguments)
 			}
 			if resp.JobRun.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters != nil {
 				f8f0.SparkSubmitParameters = resp.JobRun.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters
@@ -149,19 +143,13 @@ func (rm *resourceManager) sdkFind(
 	} else {
 		ko.Spec.ReleaseLabel = nil
 	}
-	if resp.JobRun.State != nil {
-		ko.Status.State = resp.JobRun.State
+	if resp.JobRun.State != "" {
+		ko.Status.State = aws.String(string(resp.JobRun.State))
 	} else {
 		ko.Status.State = nil
 	}
 	if resp.JobRun.Tags != nil {
-		f13 := map[string]*string{}
-		for f13key, f13valiter := range resp.JobRun.Tags {
-			var f13val string
-			f13val = *f13valiter
-			f13[f13key] = &f13val
-		}
-		ko.Spec.Tags = f13
+		ko.Spec.Tags = aws.StringMap(resp.JobRun.Tags)
 	} else {
 		ko.Spec.Tags = nil
 	}
@@ -193,10 +181,10 @@ func (rm *resourceManager) newDescribeRequestPayload(
 	res := &svcsdk.DescribeJobRunInput{}
 
 	if r.ko.Status.ID != nil {
-		res.SetId(*r.ko.Status.ID)
+		res.Id = r.ko.Status.ID
 	}
 	if r.ko.Spec.VirtualClusterID != nil {
-		res.SetVirtualClusterId(*r.ko.Spec.VirtualClusterID)
+		res.VirtualClusterId = r.ko.Spec.VirtualClusterID
 	}
 
 	return res, nil
@@ -228,7 +216,7 @@ func (rm *resourceManager) sdkCreate(
 
 	var resp *svcsdk.StartJobRunOutput
 	_ = resp
-	resp, err = rm.sdkapi.StartJobRunWithContext(ctx, input)
+	resp, err = rm.sdkapi.StartJobRun(ctx, input)
 	rm.metrics.RecordAPICall("CREATE", "StartJobRun", err)
 	if err != nil {
 		return nil, err
@@ -273,48 +261,36 @@ func (rm *resourceManager) newCreateRequestPayload(
 	res := &svcsdk.StartJobRunInput{}
 
 	if r.ko.Spec.ExecutionRoleARN != nil {
-		res.SetExecutionRoleArn(*r.ko.Spec.ExecutionRoleARN)
+		res.ExecutionRoleArn = r.ko.Spec.ExecutionRoleARN
 	}
 	if r.ko.Spec.JobDriver != nil {
-		f1 := &svcsdk.JobDriver{}
+		f1 := &svcsdktypes.JobDriver{}
 		if r.ko.Spec.JobDriver.SparkSubmitJobDriver != nil {
-			f1f0 := &svcsdk.SparkSubmitJobDriver{}
+			f1f0 := &svcsdktypes.SparkSubmitJobDriver{}
 			if r.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPoint != nil {
-				f1f0.SetEntryPoint(*r.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPoint)
+				f1f0.EntryPoint = r.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPoint
 			}
 			if r.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments != nil {
-				f1f0f1 := []*string{}
-				for _, f1f0f1iter := range r.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments {
-					var f1f0f1elem string
-					f1f0f1elem = *f1f0f1iter
-					f1f0f1 = append(f1f0f1, &f1f0f1elem)
-				}
-				f1f0.SetEntryPointArguments(f1f0f1)
+				f1f0.EntryPointArguments = aws.ToStringSlice(r.ko.Spec.JobDriver.SparkSubmitJobDriver.EntryPointArguments)
 			}
 			if r.ko.Spec.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters != nil {
-				f1f0.SetSparkSubmitParameters(*r.ko.Spec.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters)
+				f1f0.SparkSubmitParameters = r.ko.Spec.JobDriver.SparkSubmitJobDriver.SparkSubmitParameters
 			}
-			f1.SetSparkSubmitJobDriver(f1f0)
+			f1.SparkSubmitJobDriver = f1f0
 		}
-		res.SetJobDriver(f1)
+		res.JobDriver = f1
 	}
 	if r.ko.Spec.Name != nil {
-		res.SetName(*r.ko.Spec.Name)
+		res.Name = r.ko.Spec.Name
 	}
 	if r.ko.Spec.ReleaseLabel != nil {
-		res.SetReleaseLabel(*r.ko.Spec.ReleaseLabel)
+		res.ReleaseLabel = r.ko.Spec.ReleaseLabel
 	}
 	if r.ko.Spec.Tags != nil {
-		f4 := map[string]*string{}
-		for f4key, f4valiter := range r.ko.Spec.Tags {
-			var f4val string
-			f4val = *f4valiter
-			f4[f4key] = &f4val
-		}
-		res.SetTags(f4)
+		res.Tags = aws.ToStringMap(r.ko.Spec.Tags)
 	}
 	if r.ko.Spec.VirtualClusterID != nil {
-		res.SetVirtualClusterId(*r.ko.Spec.VirtualClusterID)
+		res.VirtualClusterId = r.ko.Spec.VirtualClusterID
 	}
 
 	return res, nil
@@ -347,7 +323,7 @@ func (rm *resourceManager) sdkDelete(
 	}
 	var resp *svcsdk.CancelJobRunOutput
 	_ = resp
-	resp, err = rm.sdkapi.CancelJobRunWithContext(ctx, input)
+	resp, err = rm.sdkapi.CancelJobRun(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "CancelJobRun", err)
 	return nil, err
 }
@@ -360,10 +336,10 @@ func (rm *resourceManager) newDeleteRequestPayload(
 	res := &svcsdk.CancelJobRunInput{}
 
 	if r.ko.Status.ID != nil {
-		res.SetId(*r.ko.Status.ID)
+		res.Id = r.ko.Status.ID
 	}
 	if r.ko.Spec.VirtualClusterID != nil {
-		res.SetVirtualClusterId(*r.ko.Spec.VirtualClusterID)
+		res.VirtualClusterId = r.ko.Spec.VirtualClusterID
 	}
 
 	return res, nil
@@ -476,11 +452,12 @@ func (rm *resourceManager) terminalAWSError(err error) bool {
 	if err == nil {
 		return false
 	}
-	awsErr, ok := ackerr.AWSError(err)
-	if !ok {
+
+	var terminalErr smithy.APIError
+	if !errors.As(err, &terminalErr) {
 		return false
 	}
-	switch awsErr.Code() {
+	switch terminalErr.ErrorCode() {
 	case "ValidationException":
 		return true
 	default:

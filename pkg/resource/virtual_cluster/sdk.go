@@ -28,8 +28,10 @@ import (
 	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
-	"github.com/aws/aws-sdk-go/aws"
-	svcsdk "github.com/aws/aws-sdk-go/service/emrcontainers"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/emrcontainers"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/emrcontainers/types"
+	smithy "github.com/aws/smithy-go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,8 +42,7 @@ import (
 var (
 	_ = &metav1.Time{}
 	_ = strings.ToLower("")
-	_ = &aws.JSONValue{}
-	_ = &svcsdk.EMRContainers{}
+	_ = &svcsdk.Client{}
 	_ = &svcapitypes.VirtualCluster{}
 	_ = ackv1alpha1.AWSAccountID("")
 	_ = &ackerr.NotFound
@@ -49,6 +50,7 @@ var (
 	_ = &reflect.Value{}
 	_ = fmt.Sprintf("")
 	_ = &ackrequeue.NoRequeue{}
+	_ = &aws.Config{}
 )
 
 // sdkFind returns SDK-specific information about a supplied resource
@@ -74,13 +76,11 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	var resp *svcsdk.DescribeVirtualClusterOutput
-	resp, err = rm.sdkapi.DescribeVirtualClusterWithContext(ctx, input)
+	resp, err = rm.sdkapi.DescribeVirtualCluster(ctx, input)
 	rm.metrics.RecordAPICall("READ_ONE", "DescribeVirtualCluster", err)
 	if err != nil {
-		if reqErr, ok := ackerr.AWSRequestFailure(err); ok && reqErr.StatusCode() == 404 {
-			return nil, ackerr.NotFound
-		}
-		if awsErr, ok := ackerr.AWSError(err); ok && awsErr.Code() == "UNKNOWN" {
+		var awsErr smithy.APIError
+		if errors.As(err, &awsErr) && awsErr.ErrorCode() == "UNKNOWN" {
 			return nil, ackerr.NotFound
 		}
 		return nil, err
@@ -104,17 +104,21 @@ func (rm *resourceManager) sdkFind(
 		}
 		if resp.VirtualCluster.ContainerProvider.Info != nil {
 			f1f1 := &svcapitypes.ContainerInfo{}
-			if resp.VirtualCluster.ContainerProvider.Info.EksInfo != nil {
-				f1f1f0 := &svcapitypes.EKSInfo{}
-				if resp.VirtualCluster.ContainerProvider.Info.EksInfo.Namespace != nil {
-					f1f1f0.Namespace = resp.VirtualCluster.ContainerProvider.Info.EksInfo.Namespace
+			switch resp.VirtualCluster.ContainerProvider.Info.(type) {
+			case *svcsdktypes.ContainerInfoMemberEksInfo:
+				f1f1f0 := resp.VirtualCluster.ContainerProvider.Info.(*svcsdktypes.ContainerInfoMemberEksInfo)
+				if f1f1f0 != nil {
+					f1f1f0f0 := &svcapitypes.EKSInfo{}
+					if f1f1f0.Value.Namespace != nil {
+						f1f1f0f0.Namespace = f1f1f0.Value.Namespace
+					}
+					f1f1.EKSInfo = f1f1f0f0
 				}
-				f1f1.EKSInfo = f1f1f0
 			}
 			f1.Info = f1f1
 		}
-		if resp.VirtualCluster.ContainerProvider.Type != nil {
-			f1.Type = resp.VirtualCluster.ContainerProvider.Type
+		if resp.VirtualCluster.ContainerProvider.Type != "" {
+			f1.Type = aws.String(string(resp.VirtualCluster.ContainerProvider.Type))
 		}
 		ko.Spec.ContainerProvider = f1
 	} else {
@@ -131,13 +135,7 @@ func (rm *resourceManager) sdkFind(
 		ko.Spec.Name = nil
 	}
 	if resp.VirtualCluster.Tags != nil {
-		f6 := map[string]*string{}
-		for f6key, f6valiter := range resp.VirtualCluster.Tags {
-			var f6val string
-			f6val = *f6valiter
-			f6[f6key] = &f6val
-		}
-		ko.Spec.Tags = f6
+		ko.Spec.Tags = aws.StringMap(resp.VirtualCluster.Tags)
 	} else {
 		ko.Spec.Tags = nil
 	}
@@ -164,7 +162,7 @@ func (rm *resourceManager) newDescribeRequestPayload(
 	res := &svcsdk.DescribeVirtualClusterInput{}
 
 	if r.ko.Status.ID != nil {
-		res.SetId(*r.ko.Status.ID)
+		res.Id = r.ko.Status.ID
 	}
 
 	return res, nil
@@ -187,9 +185,29 @@ func (rm *resourceManager) sdkCreate(
 		return nil, err
 	}
 
+	if input.ContainerProvider != nil {
+		// Clear any existing Info
+		if input.ContainerProvider.Info != nil {
+			input.ContainerProvider.Info = nil
+		}
+
+		// Set the Info field if it exists in the spec
+		eksInfo := &svcsdktypes.EksInfo{}
+		if desired.ko.Spec.ContainerProvider.Info != nil &&
+			desired.ko.Spec.ContainerProvider.Info.EKSInfo != nil &&
+			desired.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace != nil {
+			eksInfo.Namespace = desired.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace
+		} else {
+			eksInfo.Namespace = aws.String("default")
+		}
+		input.ContainerProvider.Info = &svcsdktypes.ContainerInfoMemberEksInfo{
+			Value: *eksInfo,
+		}
+	}
+
 	var resp *svcsdk.CreateVirtualClusterOutput
 	_ = resp
-	resp, err = rm.sdkapi.CreateVirtualClusterWithContext(ctx, input)
+	resp, err = rm.sdkapi.CreateVirtualCluster(ctx, input)
 	rm.metrics.RecordAPICall("CREATE", "CreateVirtualCluster", err)
 	if err != nil {
 		return nil, err
@@ -229,37 +247,36 @@ func (rm *resourceManager) newCreateRequestPayload(
 	res := &svcsdk.CreateVirtualClusterInput{}
 
 	if r.ko.Spec.ContainerProvider != nil {
-		f0 := &svcsdk.ContainerProvider{}
+		f0 := &svcsdktypes.ContainerProvider{}
 		if r.ko.Spec.ContainerProvider.ID != nil {
-			f0.SetId(*r.ko.Spec.ContainerProvider.ID)
+			f0.Id = r.ko.Spec.ContainerProvider.ID
 		}
 		if r.ko.Spec.ContainerProvider.Info != nil {
-			f0f1 := &svcsdk.ContainerInfo{}
+			var f0f1 svcsdktypes.ContainerInfo
+			isInterfaceSet := false
 			if r.ko.Spec.ContainerProvider.Info.EKSInfo != nil {
-				f0f1f0 := &svcsdk.EksInfo{}
-				if r.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace != nil {
-					f0f1f0.SetNamespace(*r.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace)
+				if isInterfaceSet {
+					return nil, ackerr.NewTerminalError(fmt.Errorf("can only set one of the members for EksInfo"))
 				}
-				f0f1.SetEksInfo(f0f1f0)
+				f0f1f0Parent := &svcsdktypes.ContainerInfoMemberEksInfo{}
+				f0f1f0 := &svcsdktypes.EksInfo{}
+				if r.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace != nil {
+					f0f1f0.Namespace = r.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace
+				}
+				f0f1f0Parent.Value = *f0f1f0
 			}
-			f0.SetInfo(f0f1)
+			f0.Info = f0f1
 		}
 		if r.ko.Spec.ContainerProvider.Type != nil {
-			f0.SetType(*r.ko.Spec.ContainerProvider.Type)
+			f0.Type = svcsdktypes.ContainerProviderType(*r.ko.Spec.ContainerProvider.Type)
 		}
-		res.SetContainerProvider(f0)
+		res.ContainerProvider = f0
 	}
 	if r.ko.Spec.Name != nil {
-		res.SetName(*r.ko.Spec.Name)
+		res.Name = r.ko.Spec.Name
 	}
 	if r.ko.Spec.Tags != nil {
-		f2 := map[string]*string{}
-		for f2key, f2valiter := range r.ko.Spec.Tags {
-			var f2val string
-			f2val = *f2valiter
-			f2[f2key] = &f2val
-		}
-		res.SetTags(f2)
+		res.Tags = aws.ToStringMap(r.ko.Spec.Tags)
 	}
 
 	return res, nil
@@ -292,7 +309,7 @@ func (rm *resourceManager) sdkDelete(
 	}
 	var resp *svcsdk.DeleteVirtualClusterOutput
 	_ = resp
-	resp, err = rm.sdkapi.DeleteVirtualClusterWithContext(ctx, input)
+	resp, err = rm.sdkapi.DeleteVirtualCluster(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "DeleteVirtualCluster", err)
 	return nil, err
 }
@@ -305,7 +322,7 @@ func (rm *resourceManager) newDeleteRequestPayload(
 	res := &svcsdk.DeleteVirtualClusterInput{}
 
 	if r.ko.Status.ID != nil {
-		res.SetId(*r.ko.Status.ID)
+		res.Id = r.ko.Status.ID
 	}
 
 	return res, nil
@@ -413,11 +430,12 @@ func (rm *resourceManager) terminalAWSError(err error) bool {
 	if err == nil {
 		return false
 	}
-	awsErr, ok := ackerr.AWSError(err)
-	if !ok {
+
+	var terminalErr smithy.APIError
+	if !errors.As(err, &terminalErr) {
 		return false
 	}
-	switch awsErr.Code() {
+	switch terminalErr.ErrorCode() {
 	case "ValidationException",
 		"ResourceNotFoundException",
 		"InternalServerException":
