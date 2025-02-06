@@ -46,7 +46,7 @@ type Configuration struct {
 
 // The information about the container used for a job run or a managed endpoint.
 type ContainerInfo struct {
-	// The information about the EKS cluster.
+	// The information about the Amazon EKS cluster.
 	EKSInfo *EKSInfo `json:"eksInfo,omitempty"`
 }
 
@@ -58,7 +58,7 @@ type ContainerProvider struct {
 	Type *string        `json:"type_,omitempty"`
 }
 
-// The information about the EKS cluster.
+// The information about the Amazon EKS cluster.
 type EKSInfo struct {
 	Namespace *string `json:"namespace,omitempty"`
 }
@@ -77,7 +77,8 @@ type Endpoint struct {
 	VirtualClusterID *string            `json:"virtualClusterID,omitempty"`
 }
 
-// Specify the driver that the job runs on.
+// Specify the driver that the job runs on. Exactly one of the two available
+// job drivers is required, either sparkSqlJobDriver or sparkSubmitJobDriver.
 type JobDriver struct {
 	// The information about job driver for Spark submit.
 	SparkSubmitJobDriver *SparkSubmitJobDriver `json:"sparkSubmitJobDriver,omitempty"`
@@ -95,14 +96,86 @@ type JobRun_SDK struct {
 	FailureReason    *string      `json:"failureReason,omitempty"`
 	FinishedAt       *metav1.Time `json:"finishedAt,omitempty"`
 	ID               *string      `json:"id,omitempty"`
-	// Specify the driver that the job runs on.
-	JobDriver        *JobDriver         `json:"jobDriver,omitempty"`
-	Name             *string            `json:"name,omitempty"`
-	ReleaseLabel     *string            `json:"releaseLabel,omitempty"`
-	State            *string            `json:"state,omitempty"`
-	StateDetails     *string            `json:"stateDetails,omitempty"`
-	Tags             map[string]*string `json:"tags,omitempty"`
-	VirtualClusterID *string            `json:"virtualClusterID,omitempty"`
+	// Specify the driver that the job runs on. Exactly one of the two available
+	// job drivers is required, either sparkSqlJobDriver or sparkSubmitJobDriver.
+	JobDriver    *JobDriver `json:"jobDriver,omitempty"`
+	Name         *string    `json:"name,omitempty"`
+	ReleaseLabel *string    `json:"releaseLabel,omitempty"`
+	// The configuration of the retry policy that the job runs on.
+	RetryPolicyConfiguration *RetryPolicyConfiguration `json:"retryPolicyConfiguration,omitempty"`
+	// The current status of the retry policy executed on the job.
+	RetryPolicyExecution *RetryPolicyExecution `json:"retryPolicyExecution,omitempty"`
+	State                *string               `json:"state,omitempty"`
+	StateDetails         *string               `json:"stateDetails,omitempty"`
+	Tags                 map[string]*string    `json:"tags,omitempty"`
+	VirtualClusterID     *string               `json:"virtualClusterID,omitempty"`
+}
+
+// This entity describes a job template. Job template stores values of StartJobRun
+// API request in a template and can be used to start a job run. Job template
+// allows two use cases: avoid repeating recurring StartJobRun API request values,
+// enforcing certain values in StartJobRun API request.
+type JobTemplate struct {
+	CreatedAt *metav1.Time       `json:"createdAt,omitempty"`
+	CreatedBy *string            `json:"createdBy,omitempty"`
+	ID        *string            `json:"id,omitempty"`
+	Name      *string            `json:"name,omitempty"`
+	Tags      map[string]*string `json:"tags,omitempty"`
+}
+
+// The values of StartJobRun API requests used in job runs started using the
+// job template.
+type JobTemplateData struct {
+	// Specify the driver that the job runs on. Exactly one of the two available
+	// job drivers is required, either sparkSqlJobDriver or sparkSubmitJobDriver.
+	JobDriver *JobDriver         `json:"jobDriver,omitempty"`
+	JobTags   map[string]*string `json:"jobTags,omitempty"`
+}
+
+// Lake Formation related configuration inputs for the security configuration.
+type LakeFormationConfiguration struct {
+	QueryEngineRoleARN *string `json:"queryEngineRoleARN,omitempty"`
+}
+
+// A configuration for CloudWatch monitoring. You can configure your jobs to
+// send log information to CloudWatch Logs. This data type allows job template
+// parameters to be specified within.
+type ParametricCloudWatchMonitoringConfiguration struct {
+	LogStreamNamePrefix *string `json:"logStreamNamePrefix,omitempty"`
+}
+
+// The configuration of the retry policy that the job runs on.
+type RetryPolicyConfiguration struct {
+	MaxAttempts *int64 `json:"maxAttempts,omitempty"`
+}
+
+// The current status of the retry policy executed on the job.
+type RetryPolicyExecution struct {
+	CurrentAttemptCount *int64 `json:"currentAttemptCount,omitempty"`
+}
+
+// Namespace inputs for the system job.
+type SecureNamespaceInfo struct {
+	ClusterID *string `json:"clusterID,omitempty"`
+	Namespace *string `json:"namespace,omitempty"`
+}
+
+// Inputs related to the security configuration. Security configurations in
+// Amazon EMR on EKS are templates for different security setups. You can use
+// security configurations to configure the Lake Formation integration setup.
+// You can also create a security configuration to re-use a security setup each
+// time you create a virtual cluster.
+type SecurityConfiguration struct {
+	CreatedAt *metav1.Time       `json:"createdAt,omitempty"`
+	CreatedBy *string            `json:"createdBy,omitempty"`
+	ID        *string            `json:"id,omitempty"`
+	Name      *string            `json:"name,omitempty"`
+	Tags      map[string]*string `json:"tags,omitempty"`
+}
+
+// The job driver for job type.
+type SparkSQLJobDriver struct {
+	EntryPoint *string `json:"entryPoint,omitempty"`
 }
 
 // The information about job driver for Spark submit.
@@ -112,20 +185,26 @@ type SparkSubmitJobDriver struct {
 	SparkSubmitParameters *string   `json:"sparkSubmitParameters,omitempty"`
 }
 
+// The configuration of a job template parameter.
+type TemplateParameterConfiguration struct {
+	DefaultValue *string `json:"defaultValue,omitempty"`
+}
+
 // This entity describes a virtual cluster. A virtual cluster is a Kubernetes
 // namespace that Amazon EMR is registered with. Amazon EMR uses virtual clusters
 // to run jobs and host endpoints. Multiple virtual clusters can be backed by
 // the same physical cluster. However, each virtual cluster maps to one namespace
-// on an EKS cluster. Virtual clusters do not create any active resources that
-// contribute to your bill or that require lifecycle management outside the
-// service.
+// on an Amazon EKS cluster. Virtual clusters do not create any active resources
+// that contribute to your bill or that require lifecycle management outside
+// the service.
 type VirtualCluster_SDK struct {
 	ARN *string `json:"arn,omitempty"`
 	// The information about the container provider.
-	ContainerProvider *ContainerProvider `json:"containerProvider,omitempty"`
-	CreatedAt         *metav1.Time       `json:"createdAt,omitempty"`
-	ID                *string            `json:"id,omitempty"`
-	Name              *string            `json:"name,omitempty"`
-	State             *string            `json:"state,omitempty"`
-	Tags              map[string]*string `json:"tags,omitempty"`
+	ContainerProvider       *ContainerProvider `json:"containerProvider,omitempty"`
+	CreatedAt               *metav1.Time       `json:"createdAt,omitempty"`
+	ID                      *string            `json:"id,omitempty"`
+	Name                    *string            `json:"name,omitempty"`
+	SecurityConfigurationID *string            `json:"securityConfigurationID,omitempty"`
+	State                   *string            `json:"state,omitempty"`
+	Tags                    map[string]*string `json:"tags,omitempty"`
 }

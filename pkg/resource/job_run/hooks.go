@@ -4,12 +4,12 @@ import (
 	"reflect"
 
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
-	"github.com/aws/aws-sdk-go/aws"
-	svcsdk "github.com/aws/aws-sdk-go/service/emrcontainers"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/emrcontainers/types"
 	"github.com/ghodss/yaml"
 )
 
-func configurationOverridesToString(cfg *svcsdk.ConfigurationOverrides) (*string, error) {
+func configurationOverridesToString(cfg *svcsdktypes.ConfigurationOverrides) (*string, error) {
 	configBytes, err := yaml.Marshal(cfg)
 	if err != nil {
 		return nil, err
@@ -18,12 +18,12 @@ func configurationOverridesToString(cfg *svcsdk.ConfigurationOverrides) (*string
 	return &configStr, nil
 }
 
-func stringToConfigurationOverrides(cfg *string) (*svcsdk.ConfigurationOverrides, error) {
+func stringToConfigurationOverrides(cfg *string) (*svcsdktypes.ConfigurationOverrides, error) {
 	if cfg == nil {
 		cfg = aws.String("")
 	}
 
-	var config svcsdk.ConfigurationOverrides
+	var config svcsdktypes.ConfigurationOverrides
 	err := yaml.Unmarshal([]byte(*cfg), &config)
 	if err != nil {
 		return nil, err
@@ -55,15 +55,13 @@ func customPreCompare(
 		delta.Add("Spec.ConfigurationOverrides", aConfig.MonitoringConfiguration, bConfig.MonitoringConfiguration)
 	} else if aConfig.MonitoringConfiguration != nil && bConfig.MonitoringConfiguration != nil {
 		if ackcompare.HasNilDifference(aConfig.MonitoringConfiguration.PersistentAppUI, bConfig.MonitoringConfiguration.PersistentAppUI) {
-			if aConfig.MonitoringConfiguration.PersistentAppUI == nil && *bConfig.MonitoringConfiguration.PersistentAppUI == "ENABLED" {
+			if aConfig.MonitoringConfiguration.PersistentAppUI == "" && bConfig.MonitoringConfiguration.PersistentAppUI == svcsdktypes.PersistentAppUIEnabled {
 				// We do not consider this as a difference because the API defaults PersistentAppUI to "ENABLED"
 			} else {
 				delta.Add("Spec.ConfigurationOverrides.PersistentAppUI", aConfig.MonitoringConfiguration.PersistentAppUI, bConfig.MonitoringConfiguration.PersistentAppUI)
 			}
-		} else if aConfig.MonitoringConfiguration.PersistentAppUI != nil && bConfig.MonitoringConfiguration.PersistentAppUI != nil {
-			if *aConfig.MonitoringConfiguration.PersistentAppUI != *bConfig.MonitoringConfiguration.PersistentAppUI {
-				delta.Add("Spec.ConfigurationOverrides.PersistentAppUI", aConfig.MonitoringConfiguration.PersistentAppUI, bConfig.MonitoringConfiguration.PersistentAppUI)
-			}
+		} else if aConfig.MonitoringConfiguration.PersistentAppUI != bConfig.MonitoringConfiguration.PersistentAppUI {
+			delta.Add("Spec.ConfigurationOverrides.PersistentAppUI", aConfig.MonitoringConfiguration.PersistentAppUI, bConfig.MonitoringConfiguration.PersistentAppUI)
 		}
 		if ackcompare.HasNilDifference(
 			aConfig.MonitoringConfiguration.CloudWatchMonitoringConfiguration,

@@ -15,6 +15,12 @@
 
 package v1alpha1
 
+type CertificateProviderType string
+
+const (
+	CertificateProviderType_PEM CertificateProviderType = "PEM"
+)
+
 type ContainerProviderType string
 
 const (
@@ -24,46 +30,53 @@ const (
 type EndpointState string
 
 const (
-	EndpointState_CREATING               EndpointState = "CREATING"
 	EndpointState_ACTIVE                 EndpointState = "ACTIVE"
-	EndpointState_TERMINATING            EndpointState = "TERMINATING"
+	EndpointState_CREATING               EndpointState = "CREATING"
 	EndpointState_TERMINATED             EndpointState = "TERMINATED"
 	EndpointState_TERMINATED_WITH_ERRORS EndpointState = "TERMINATED_WITH_ERRORS"
+	EndpointState_TERMINATING            EndpointState = "TERMINATING"
 )
 
 type FailureReason string
 
 const (
+	FailureReason_CLUSTER_UNAVAILABLE FailureReason = "CLUSTER_UNAVAILABLE"
 	FailureReason_INTERNAL_ERROR      FailureReason = "INTERNAL_ERROR"
 	FailureReason_USER_ERROR          FailureReason = "USER_ERROR"
 	FailureReason_VALIDATION_ERROR    FailureReason = "VALIDATION_ERROR"
-	FailureReason_CLUSTER_UNAVAILABLE FailureReason = "CLUSTER_UNAVAILABLE"
 )
 
 type JobRunState string
 
 const (
-	JobRunState_PENDING        JobRunState = "PENDING"
-	JobRunState_SUBMITTED      JobRunState = "SUBMITTED"
-	JobRunState_RUNNING        JobRunState = "RUNNING"
-	JobRunState_FAILED         JobRunState = "FAILED"
 	JobRunState_CANCELLED      JobRunState = "CANCELLED"
 	JobRunState_CANCEL_PENDING JobRunState = "CANCEL_PENDING"
 	JobRunState_COMPLETED      JobRunState = "COMPLETED"
+	JobRunState_FAILED         JobRunState = "FAILED"
+	JobRunState_PENDING        JobRunState = "PENDING"
+	JobRunState_RUNNING        JobRunState = "RUNNING"
+	JobRunState_SUBMITTED      JobRunState = "SUBMITTED"
 )
 
 type PersistentAppUI string
 
 const (
-	PersistentAppUI_ENABLED  PersistentAppUI = "ENABLED"
 	PersistentAppUI_DISABLED PersistentAppUI = "DISABLED"
+	PersistentAppUI_ENABLED  PersistentAppUI = "ENABLED"
+)
+
+type TemplateParameterDataType string
+
+const (
+	TemplateParameterDataType_NUMBER TemplateParameterDataType = "NUMBER"
+	TemplateParameterDataType_STRING TemplateParameterDataType = "STRING"
 )
 
 type VirtualClusterState string
 
 const (
-	VirtualClusterState_RUNNING     VirtualClusterState = "RUNNING"
-	VirtualClusterState_TERMINATING VirtualClusterState = "TERMINATING"
-	VirtualClusterState_TERMINATED  VirtualClusterState = "TERMINATED"
 	VirtualClusterState_ARRESTED    VirtualClusterState = "ARRESTED"
+	VirtualClusterState_RUNNING     VirtualClusterState = "RUNNING"
+	VirtualClusterState_TERMINATED  VirtualClusterState = "TERMINATED"
+	VirtualClusterState_TERMINATING VirtualClusterState = "TERMINATING"
 )

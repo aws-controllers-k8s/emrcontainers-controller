@@ -4,7 +4,7 @@
 # not use this file except in compliance with the License. A copy of the
 # License is located at
 #
-#	 http://aws.amazon.com/apache2.0/
+# http://aws.amazon.com/apache2.0/
 #
 # or in the "license" file accompanying this file. This file is distributed
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
@@ -37,18 +37,67 @@ MODIFY_WAIT_AFTER_SECONDS = 10
 # Time to wait after the zone has changed status, for the CR to update
 CHECK_STATUS_WAIT_SECONDS = 180
 
+# Maximum time to wait for EKS cluster to be active (5 minutes)
+MAX_EKS_WAIT_SECONDS = 300
+
+
+@pytest.fixture
+def eks_client():
+    return boto3.client("eks")
+
+
+def wait_for_eks_cluster_active(eks_client, cluster_name: str, max_wait_seconds: int = MAX_EKS_WAIT_SECONDS) -> bool:
+    """Wait for EKS cluster to be in ACTIVE status
+
+    Args:
+        eks_client: boto3 EKS client
+        cluster_name: Name of the EKS cluster
+        max_wait_seconds: Maximum time to wait in seconds
+
+    Returns:
+        bool: True if cluster is active, False if timeout reached
+    """
+    start_time = time.time()
+    while (time.time() - start_time) < max_wait_seconds:
+        try:
+            response = eks_client.describe_cluster(name=cluster_name)
+            status = response['cluster']['status']
+            if status == 'ACTIVE':
+                return True
+            elif status in ['FAILED', 'DELETING', 'DELETED']:
+                logging.error(
+                    f"EKS cluster {cluster_name} in terminal state: {status}")
+                return False
+            logging.info(f"Waiting for EKS cluster to be active.")
+            if not wait_for_eks_cluster_active(eks_client, cluster_name):
+                pytest.fail(f"EKS cluster did not become active within {MAX_EKS_WAIT_SECONDS} seconds")
+        except eks_client.exceptions.ResourceNotFoundException:
+            logging.error(f"EKS cluster not found")
+            return False
+        except Exception as e:
+            logging.warning(f"Error checking EKS cluster status: {str(e)}")
+        time.sleep(30)
+    return False
+
+
 @pytest.fixture
 def iam_client():
     return boto3.client("iam")
 
+
 @pytest.fixture
-def jobrun():
+def jobrun(eks_client):
     virtual_cluster_name = random_suffix_name("emr-virtual-cluster", 32)
     job_run_name = random_suffix_name("emr-job-run", 32)
 
+    # Wait for EKS cluster to be active before proceeding
+    eks_cluster_name = get_bootstrap_resources().HostCluster_JR.cluster.name
+    if not wait_for_eks_cluster_active(eks_client, eks_cluster_name):
+        pytest.fail(f"EKS cluster {eks_cluster_name} did not become active within {MAX_EKS_WAIT_SECONDS}seconds")
+
     replacements = REPLACEMENT_VALUES.copy()
     replacements["VIRTUALCLUSTER_NAME"] = virtual_cluster_name
-    replacements["EKS_CLUSTER_NAME"] = get_bootstrap_resources().HostCluster_JR.cluster.name
+    replacements["EKS_CLUSTER_NAME"] = eks_cluster_name
 
     resource_data = load_resource(
         "emr_virtual_cluster",
@@ -61,11 +110,34 @@ def jobrun():
         CRD_GROUP, CRD_VERSION, VC_RESOURCE_PLURAL,
         virtual_cluster_name, namespace="default",
     )
-    k8s.create_custom_resource(vc_ref, resource_data)
-    vc_cr = k8s.wait_resource_consumed_by_controller(vc_ref)
+
+    # Add retry mechanism for VirtualCluster creation
+    max_retries = 5
+    retry_delay = 30  # seconds
+    for attempt in range(max_retries):
+        try:
+            k8s.create_custom_resource(vc_ref, resource_data)
+            vc_cr = k8s.wait_resource_consumed_by_controller(vc_ref)
+
+            # Check if the resource exists and has an ID
+            if vc_cr is not None and k8s.get_resource_exists(vc_ref):
+                if "status" in vc_cr and "id" in vc_cr["status"]:
+                    break
+
+            # If we get here, the creation succeeded but ID is not set
+            # Delete and retry
+            k8s.delete_custom_resource(vc_ref, 3, 10)
+
+        except Exception as e:
+            logging.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                continue
+            raise
 
     assert vc_cr is not None
     assert k8s.get_resource_exists(vc_ref)
+    assert "status" in vc_cr and "id" in vc_cr["status"], "VirtualCluster status.id not set after retries"
 
     virtual_cluster_id = vc_cr["status"]["id"]
     emr_release_label = "emr-6.3.0-latest"
@@ -116,6 +188,7 @@ def jobrun():
     except:
         pass
 
+
 @service_marker
 @pytest.mark.canary
 class Test_JobRun:
@@ -145,7 +218,8 @@ class Test_JobRun:
 
         existing_statements = actual_assume_role_document.get("Statement", [])
         for existing_statement in existing_statements:
-            matches = self.check_if_dict_matches(expected_statement, existing_statement)
+            matches = self.check_if_dict_matches(
+                expected_statement, existing_statement)
             if matches:
                 return True
         return False
@@ -175,12 +249,11 @@ class Test_JobRun:
         oidc_provider = oidc_provider_arn.split('oidc-provider/')[1]
         emr_namespace = "emr-ns"
         base36_encoded_role_name = self.base36_encode(job_execution_role_name)
-        print("base36_encoded_role_name =", base36_encoded_role_name)
         account_id = get_account_id()
         LOG = logging.getLogger(__name__)
         TRUST_POLICY_STATEMENT_ALREADY_EXISTS = "Trust policy statement already " \
-                                            "exists for role %s. No changes " \
-                                            "were made!"
+            "exists for role %s. No changes " \
+            "were made!"
         TRUST_POLICY_UPDATE_SUCCESSFUL = "Successfully updated trust policy of role %s"
         TRUST_POLICY_STATEMENT_FORMAT = '{ \
         "Effect": "Allow", \
@@ -198,33 +271,31 @@ class Test_JobRun:
         }'
 
         job_execution_trust_policy = json.loads(TRUST_POLICY_STATEMENT_FORMAT % {
-                "AWS_ACCOUNT_ID": account_id,
-                "OIDC_PROVIDER_ARN": oidc_provider_arn,
-                "OIDC_PROVIDER": oidc_provider,
-                "NAMESPACE": emr_namespace,
-                "BASE36_ENCODED_ROLE_NAME": base36_encoded_role_name
-            })
+            "AWS_ACCOUNT_ID": account_id,
+            "OIDC_PROVIDER_ARN": oidc_provider_arn,
+            "OIDC_PROVIDER": oidc_provider,
+            "NAMESPACE": emr_namespace,
+            "BASE36_ENCODED_ROLE_NAME": base36_encoded_role_name
+        })
 
-        # assume_role_document = self.get_assume_role_policy(iam_client, job_execution_role_name)
-        assume_role_policy = iam_client.get_role(RoleName=job_execution_role_name)
-        assume_role_document = assume_role_policy.get("Role").get("AssumeRolePolicyDocument")
-        print("assume_role_document =", assume_role_document)
+        assume_role_policy = iam_client.get_role(
+            RoleName=job_execution_role_name)
+        assume_role_document = assume_role_policy.get(
+            "Role").get("AssumeRolePolicyDocument")
 
         matches = self.check_if_statement_exists(job_execution_trust_policy,
-                                                assume_role_document)
+                                                 assume_role_document)
 
         if not matches:
-            LOG.debug('Role %s does not have the required trust policy ',
-              job_execution_role_name)
             existing_statements = assume_role_document.get("Statement")
-            print("existing_statements =", existing_statements)
             if existing_statements is None:
-                assume_role_document["Statement"] = [job_execution_trust_policy]
+                assume_role_document["Statement"] = [
+                    job_execution_trust_policy]
             else:
                 existing_statements.append(job_execution_trust_policy)
 
-            LOG.debug('Updating trust policy of role %s', job_execution_role_name)
-            iam_client.update_assume_role_policy(RoleName=job_execution_role_name, PolicyDocument=json.dumps(assume_role_document))
+            iam_client.update_assume_role_policy(
+                RoleName=job_execution_role_name, PolicyDocument=json.dumps(assume_role_document))
             return TRUST_POLICY_UPDATE_SUCCESSFUL % job_execution_role_name
         else:
             return TRUST_POLICY_STATEMENT_ALREADY_EXISTS % job_execution_role_name
@@ -246,29 +317,33 @@ class Test_JobRun:
         assert jobrun_id
 
         try:
-            aws_res = emrcontainers_client.describe_job_run(id=jobrun_id,virtualClusterId=virtual_cluster_id)
+            aws_res = emrcontainers_client.describe_job_run(
+                id=jobrun_id, virtualClusterId=virtual_cluster_id)
             assert aws_res is not None
         except emrcontainers_client.exceptions.ResourceNotFoundException:
-            pytest.fail(f"Could not find job run with ID '{jobrun_id}' in EMR on EKS")
+            pytest.fail(f"Could not find job run with ID in EMR on EKS")
 
         # delete oidc provider
         try:
-            aws_res = iam_client.delete_open_id_connect_provider(OpenIDConnectProviderArn=oidc_provider_arn)
+            aws_res = iam_client.delete_open_id_connect_provider(
+                OpenIDConnectProviderArn=oidc_provider_arn)
             assert aws_res is not None
         except iam_client.exceptions.InvalidInputException:
             pytest.fail(f"Could not delete oidc identity provider")
 
         # check if JobRun is deleted
         try:
-            jr_deleted = emrcontainers_client.describe_job_run(id=jobrun_id,virtualClusterId=virtual_cluster_id)
+            jr_deleted = emrcontainers_client.describe_job_run(
+                id=jobrun_id, virtualClusterId=virtual_cluster_id)
             logging.debug('%s is deleted during cleanup', jobrun_id)
             assert jr_deleted
         except:
             logging.debug('some resources such as %s did not cleanup as expected', jobrun_id)
-            
+
         # check if VirtualCluster is deleted
         try:
-            vc_deleted = emrcontainers_client.describe_virtual_cluster(id=virtual_cluster_id)
+            vc_deleted = emrcontainers_client.describe_virtual_cluster(
+                id=virtual_cluster_id)
             logging.debug('%s is deleted during cleanup', virtual_cluster_id)
             assert vc_deleted
         except:
