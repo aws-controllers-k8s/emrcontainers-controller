@@ -26,19 +26,39 @@ import (
 // jar, PySpark script, or SparkSQL query, that you submit to Amazon EMR on
 // EKS.
 type JobRunSpec struct {
+
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
+
 	ConfigurationOverrides *string `json:"configurationOverrides,omitempty"`
 	// The execution role ARN for the job run.
+
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
+
 	ExecutionRoleARN *string `json:"executionRoleARN,omitempty"`
 	// The job driver for the job run.
+
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
+
 	JobDriver *JobDriver `json:"jobDriver,omitempty"`
 	// The name of the job run.
+
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
+
 	Name *string `json:"name,omitempty"`
 	// The Amazon EMR release version to use for the job run.
+
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
+
 	ReleaseLabel *string `json:"releaseLabel,omitempty"`
 	// The tags assigned to job runs.
+
 	Tags map[string]*string `json:"tags,omitempty"`
 	// The virtual cluster ID for which the job run request is submitted.
-	VirtualClusterID  *string                                  `json:"virtualClusterID,omitempty"`
+
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
+
+	VirtualClusterID *string `json:"virtualClusterID,omitempty"`
+
 	VirtualClusterRef *ackv1alpha1.AWSResourceReferenceWrapper `json:"virtualClusterRef,omitempty"`
 }
 
@@ -49,7 +69,7 @@ type JobRunStatus struct {
 	// constructed ARN for the resource
 	// +kubebuilder:validation:Optional
 	ACKResourceMetadata *ackv1alpha1.ResourceMetadata `json:"ackResourceMetadata"`
-	// All CRS managed by ACK have a common `Status.Conditions` member that
+	// All CRs managed by ACK have a common `Status.Conditions` member that
 	// contains a collection of `ackv1alpha1.Condition` objects that describe
 	// the various terminal states of the CR and its backend AWS service API
 	// resource
