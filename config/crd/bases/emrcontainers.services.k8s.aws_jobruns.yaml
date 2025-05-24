@@ -57,7 +57,10 @@ spec:
                 - message: Value is immutable once set
                   rule: self == oldSelf
               executionRoleARN:
-                description: The execution role ARN for the job run.
+                description: |-
+                  The execution role ARN for the job run.
+
+                  Regex Pattern: `^arn:(aws[a-zA-Z0-9-]*):iam::(\d{12})?:(role((\u002F)|(\u002F[\u0021-\u007F]+\u002F))[\w+=,.@-]+)$`
                 type: string
                 x-kubernetes-validations:
                 - message: Value is immutable once set
@@ -82,13 +85,19 @@ spec:
                 - message: Value is immutable once set
                   rule: self == oldSelf
               name:
-                description: The name of the job run.
+                description: |-
+                  The name of the job run.
+
+                  Regex Pattern: `^[\.\-_/#A-Za-z0-9]+$`
                 type: string
                 x-kubernetes-validations:
                 - message: Value is immutable once set
                   rule: self == oldSelf
               releaseLabel:
-                description: The Amazon EMR release version to use for the job run.
+                description: |-
+                  The Amazon EMR release version to use for the job run.
+
+                  Regex Pattern: `^[\.\-_/A-Za-z0-9]+$`
                 type: string
                 x-kubernetes-validations:
                 - message: Value is immutable once set
@@ -99,8 +108,10 @@ spec:
                 description: The tags assigned to job runs.
                 type: object
               virtualClusterID:
-                description: The virtual cluster ID for which the job run request
-                  is submitted.
+                description: |-
+                  The virtual cluster ID for which the job run request is submitted.
+
+                  Regex Pattern: `^[0-9a-z]+$`
                 type: string
                 x-kubernetes-validations:
                 - message: Value is immutable once set
@@ -191,7 +202,10 @@ spec:
                   type: object
                 type: array
               id:
-                description: This output displays the started job run ID.
+                description: |-
+                  This output displays the started job run ID.
+
+                  Regex Pattern: `^[0-9a-z]+$`
                 type: string
               state:
                 description: The state of the job run.

@@ -68,7 +68,10 @@ spec:
                     type: string
                 type: object
               name:
-                description: The specified name of the virtual cluster.
+                description: |-
+                  The specified name of the virtual cluster.
+
+                  Regex Pattern: `^[\.\-_/#A-Za-z0-9]+$`
                 type: string
               tags:
                 additionalProperties:
@@ -147,7 +150,10 @@ spec:
                   type: object
                 type: array
               id:
-                description: This output contains the virtual cluster ID.
+                description: |-
+                  This output contains the virtual cluster ID.
+
+                  Regex Pattern: `^[0-9a-z]+$`
                 type: string
             type: object
         type: object

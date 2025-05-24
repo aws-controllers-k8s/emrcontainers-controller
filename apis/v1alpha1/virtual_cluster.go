@@ -35,6 +35,8 @@ type VirtualClusterSpec struct {
 	// +kubebuilder:validation:Required
 	ContainerProvider *ContainerProvider `json:"containerProvider"`
 	// The specified name of the virtual cluster.
+	//
+	// Regex Pattern: `^[\.\-_/#A-Za-z0-9]+$`
 	// +kubebuilder:validation:Required
 	Name *string `json:"name"`
 	// The tags assigned to the virtual cluster.
@@ -55,6 +57,8 @@ type VirtualClusterStatus struct {
 	// +kubebuilder:validation:Optional
 	Conditions []*ackv1alpha1.Condition `json:"conditions"`
 	// This output contains the virtual cluster ID.
+	//
+	// Regex Pattern: `^[0-9a-z]+$`
 	// +kubebuilder:validation:Optional
 	ID *string `json:"id,omitempty"`
 }
