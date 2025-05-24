@@ -30,20 +30,28 @@ type JobRunSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	ConfigurationOverrides *string `json:"configurationOverrides,omitempty"`
 	// The execution role ARN for the job run.
+	//
+	// Regex Pattern: `^arn:(aws[a-zA-Z0-9-]*):iam::(\d{12})?:(role((\u002F)|(\u002F[\u0021-\u007F]+\u002F))[\w+=,.@-]+)$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	ExecutionRoleARN *string `json:"executionRoleARN,omitempty"`
 	// The job driver for the job run.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	JobDriver *JobDriver `json:"jobDriver,omitempty"`
 	// The name of the job run.
+	//
+	// Regex Pattern: `^[\.\-_/#A-Za-z0-9]+$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	Name *string `json:"name,omitempty"`
 	// The Amazon EMR release version to use for the job run.
+	//
+	// Regex Pattern: `^[\.\-_/A-Za-z0-9]+$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	ReleaseLabel *string `json:"releaseLabel,omitempty"`
 	// The tags assigned to job runs.
 	Tags map[string]*string `json:"tags,omitempty"`
 	// The virtual cluster ID for which the job run request is submitted.
+	//
+	// Regex Pattern: `^[0-9a-z]+$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	VirtualClusterID  *string                                  `json:"virtualClusterID,omitempty"`
 	VirtualClusterRef *ackv1alpha1.AWSResourceReferenceWrapper `json:"virtualClusterRef,omitempty"`
@@ -63,6 +71,8 @@ type JobRunStatus struct {
 	// +kubebuilder:validation:Optional
 	Conditions []*ackv1alpha1.Condition `json:"conditions"`
 	// This output displays the started job run ID.
+	//
+	// Regex Pattern: `^[0-9a-z]+$`
 	// +kubebuilder:validation:Optional
 	ID *string `json:"id,omitempty"`
 	// The state of the job run.
