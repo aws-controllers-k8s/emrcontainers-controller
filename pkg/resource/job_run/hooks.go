@@ -18,6 +18,20 @@ func configurationOverridesToString(cfg *svcsdktypes.ConfigurationOverrides) (*s
 	return &configStr, nil
 }
 
+// jobInCancellableState returns whether or not the JobRun is in
+// a state where it can be cancelled.
+func jobInCancellableState(jobRun *resource) bool {
+	switch *jobRun.ko.Status.State {
+	case string(svcsdktypes.JobRunStateCompleted),
+		string(svcsdktypes.JobRunStateCancelPending),
+		string(svcsdktypes.JobRunStateCancelled),
+		string(svcsdktypes.JobRunStateFailed):
+		return false
+	default:
+		return true
+	}
+}
+
 func stringToConfigurationOverrides(cfg *string) (*svcsdktypes.ConfigurationOverrides, error) {
 	if cfg == nil {
 		cfg = aws.String("")
