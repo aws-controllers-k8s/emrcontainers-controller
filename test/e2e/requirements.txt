@@ -1,2 +1,2 @@
-acktest @ git+https://github.com/aws-controllers-k8s/test-infra.git@45dfc05236f2ce63e8404c196ea63105dc1404aa
+acktest @ git+https://github.com/gustavodiaz7722/ack-test-infra.git@075991b980ffbc9177f0427270be707359240f89
 awscli==1.29.43
