@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - common
   - bases/emrcontainers.services.k8s.aws_jobruns.yaml
+  - bases/emrcontainers.services.k8s.aws_jobtemplates.yaml
   - bases/emrcontainers.services.k8s.aws_virtualclusters.yaml

@@ -73,6 +73,7 @@ rules:
   - emrcontainers.services.k8s.aws
   resources:
   - jobruns
+  - jobtemplates
   - virtualclusters
   verbs:
   - create
@@ -86,6 +87,7 @@ rules:
   - emrcontainers.services.k8s.aws
   resources:
   - jobruns/status
+  - jobtemplates/status
   - virtualclusters/status
   verbs:
   - get

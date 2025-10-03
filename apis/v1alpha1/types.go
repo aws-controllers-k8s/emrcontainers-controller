@@ -111,25 +111,35 @@ type JobRun_SDK struct {
 	VirtualClusterID     *string               `json:"virtualClusterID,omitempty"`
 }
 
+// The values of StartJobRun API requests used in job runs started using the
+// job template.
+type JobTemplateData struct {
+	ConfigurationOverrides *string `json:"configurationOverrides,omitempty"`
+	ExecutionRoleARN       *string `json:"executionRoleARN,omitempty"`
+	// Specify the driver that the job runs on. Exactly one of the two available
+	// job drivers is required, either sparkSqlJobDriver or sparkSubmitJobDriver.
+	JobDriver              *JobDriver                                 `json:"jobDriver,omitempty"`
+	JobTags                map[string]*string                         `json:"jobTags,omitempty"`
+	ParameterConfiguration map[string]*TemplateParameterConfiguration `json:"parameterConfiguration,omitempty"`
+	ReleaseLabel           *string                                    `json:"releaseLabel,omitempty"`
+}
+
 // This entity describes a job template. Job template stores values of StartJobRun
 // API request in a template and can be used to start a job run. Job template
 // allows two use cases: avoid repeating recurring StartJobRun API request values,
 // enforcing certain values in StartJobRun API request.
-type JobTemplate struct {
-	CreatedAt *metav1.Time       `json:"createdAt,omitempty"`
-	CreatedBy *string            `json:"createdBy,omitempty"`
-	ID        *string            `json:"id,omitempty"`
-	Name      *string            `json:"name,omitempty"`
-	Tags      map[string]*string `json:"tags,omitempty"`
-}
-
-// The values of StartJobRun API requests used in job runs started using the
-// job template.
-type JobTemplateData struct {
-	// Specify the driver that the job runs on. Exactly one of the two available
-	// job drivers is required, either sparkSqlJobDriver or sparkSubmitJobDriver.
-	JobDriver *JobDriver         `json:"jobDriver,omitempty"`
-	JobTags   map[string]*string `json:"jobTags,omitempty"`
+type JobTemplate_SDK struct {
+	ARN             *string      `json:"arn,omitempty"`
+	CreatedAt       *metav1.Time `json:"createdAt,omitempty"`
+	CreatedBy       *string      `json:"createdBy,omitempty"`
+	DECRyptionError *string      `json:"dECRyptionError,omitempty"`
+	ID              *string      `json:"id,omitempty"`
+	// The values of StartJobRun API requests used in job runs started using the
+	// job template.
+	JobTemplateData *JobTemplateData   `json:"jobTemplateData,omitempty"`
+	KMSKeyARN       *string            `json:"kmsKeyARN,omitempty"`
+	Name            *string            `json:"name,omitempty"`
+	Tags            map[string]*string `json:"tags,omitempty"`
 }
 
 // Lake Formation related configuration inputs for the security configuration.
@@ -188,6 +198,7 @@ type SparkSubmitJobDriver struct {
 // The configuration of a job template parameter.
 type TemplateParameterConfiguration struct {
 	DefaultValue *string `json:"defaultValue,omitempty"`
+	Type         *string `json:"type_,omitempty"`
 }
 
 // This entity describes a virtual cluster. A virtual cluster is a Kubernetes
