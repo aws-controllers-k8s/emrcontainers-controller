@@ -9,12 +9,14 @@ ignore:
     - StartJobRunInput.RetryPolicyConfiguration
     - StartJobRunInput.JobTemplateParameters
     - CreateVirtualClusterInput.SecurityConfigurationId
+    - Configuration.Configurations
+    - JobTemplateData.ConfigurationOverrides.ApplicationConfiguration.Configurations
   operations: null
   resource_names:
     # - VirtualCluster
     # - JobRun
     - ManagedEndpoint
-    - JobTemplate
+    # - JobTemplate  # Removed from ignore list
     - SecurityConfiguration
 sdk_names:
   model_name: emr-containers
@@ -29,6 +31,8 @@ operations:
     resource_name: JobRun
   DescribeJobRun:
     output_wrapper_field_path: JobRun
+  GetJobTemplate:
+    output_wrapper_field_path: ""
 prefix_config: {}
 resources:
   VirtualCluster:
@@ -90,3 +94,64 @@ resources:
     exceptions:
       terminal_codes:
         - ValidationException
+  JobTemplate:
+    fields:
+      # Primary identifiers
+      ID:
+        is_primary_key: true
+      Name:
+        is_required: true
+      ARN:
+        is_read_only: true
+      # Computed fields
+      CreatedAt:
+        is_read_only: true
+      CreatedBy:
+        is_read_only: true
+      # Immutable fields
+      ID:
+        is_immutable: true
+      CreatedAt:
+        is_immutable: true
+      CreatedBy:
+        is_immutable: true
+      # Handle ConfigurationOverrides similar to JobRun
+      JobTemplateData.ConfigurationOverrides:
+        type: "string"
+        compare:
+          is_ignored: true
+    exceptions:
+      errors:
+        404:
+          code: ResourceNotFoundException
+      terminal_codes:
+        - ValidationException
+        - ResourceNotFoundException
+    hooks:
+      sdk_create_post_set_output:
+        template_path: hooks/job_template/sdk_create_post_set_output.go.tpl
+      sdk_update_pre_build_request:
+        template_path: hooks/job_template/sdk_update_pre_build_request.go.tpl
+      sdk_read_one_post_set_output:
+        template_path: hooks/job_template/sdk_read_one_post_set_output.go.tpl
+    renames:
+      operations:
+        CreateJobTemplate:
+          output_fields:
+            id: ID
+        GetJobTemplate:
+          input_fields:
+            id: ID
+          output_fields:
+            id: ID
+            arn: ARN
+        DeleteJobTemplate:
+          input_fields:
+            id: ID
+          output_fields:
+            id: ID
+        UpdateJobTemplate:
+          input_fields:
+            id: ID
+          output_fields:
+            id: ID

@@ -4,27 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: jobruns.emrcontainers.services.k8s.aws
+  name: jobtemplates.emrcontainers.services.k8s.aws
 spec:
   group: emrcontainers.services.k8s.aws
   names:
-    kind: JobRun
-    listKind: JobRunList
-    plural: jobruns
-    singular: jobrun
+    kind: JobTemplate
+    listKind: JobTemplateList
+    plural: jobtemplates
+    singular: jobtemplate
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .status.id
-      name: Job-ID
-      type: string
-    - jsonPath: .status.state
-      name: STATE
-      type: string
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: JobRun is the Schema for the JobRuns API
+        description: JobTemplate is the Schema for the JobTemplates API
         properties:
           apiVersion:
             description: |-
@@ -45,97 +38,86 @@ spec:
             type: object
           spec:
             description: |-
-              JobRunSpec defines the desired state of JobRun.
+              JobTemplateSpec defines the desired state of JobTemplate.
 
-              This entity describes a job run. A job run is a unit of work, such as a Spark
-              jar, PySpark script, or SparkSQL query, that you submit to Amazon EMR on
-              EKS.
+              This entity describes a job template. Job template stores values of StartJobRun
+              API request in a template and can be used to start a job run. Job template
+              allows two use cases: avoid repeating recurring StartJobRun API request values,
+              enforcing certain values in StartJobRun API request.
             properties:
-              configurationOverrides:
-                type: string
-                x-kubernetes-validations:
-                - message: Value is immutable once set
-                  rule: self == oldSelf
-              executionRoleARN:
+              clientToken:
                 description: |-
-                  The execution role ARN for the job run.
+                  The client token of the job template.
 
-                  Regex Pattern: `^arn:(aws[a-zA-Z0-9-]*):iam::(\d{12})?:(role((\u002F)|(\u002F[\u0021-\u007F]+\u002F))[\w+=,.@-]+)$`
+                  Regex Pattern: `\S`
                 type: string
-                x-kubernetes-validations:
-                - message: Value is immutable once set
-                  rule: self == oldSelf
-              jobDriver:
-                description: The job driver for the job run.
+              jobTemplateData:
+                description: The job template data which holds values of StartJobRun
+                  API request.
                 properties:
-                  sparkSubmitJobDriver:
-                    description: The information about job driver for Spark submit.
+                  configurationOverrides:
+                    type: string
+                  executionRoleARN:
+                    type: string
+                  jobDriver:
+                    description: |-
+                      Specify the driver that the job runs on. Exactly one of the two available
+                      job drivers is required, either sparkSqlJobDriver or sparkSubmitJobDriver.
                     properties:
-                      entryPoint:
-                        type: string
-                      entryPointArguments:
-                        items:
-                          type: string
-                        type: array
-                      sparkSubmitParameters:
-                        type: string
+                      sparkSubmitJobDriver:
+                        description: The information about job driver for Spark submit.
+                        properties:
+                          entryPoint:
+                            type: string
+                          entryPointArguments:
+                            items:
+                              type: string
+                            type: array
+                          sparkSubmitParameters:
+                            type: string
+                        type: object
                     type: object
+                  jobTags:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  parameterConfiguration:
+                    additionalProperties:
+                      description: The configuration of a job template parameter.
+                      properties:
+                        defaultValue:
+                          type: string
+                        type_:
+                          type: string
+                      type: object
+                    type: object
+                  releaseLabel:
+                    type: string
                 type: object
-                x-kubernetes-validations:
-                - message: Value is immutable once set
-                  rule: self == oldSelf
+              kmsKeyARN:
+                description: |-
+                  The KMS key ARN used to encrypt the job template.
+
+                  Regex Pattern: `^(arn:(aws[a-zA-Z0-9-]*):kms:.+:(\d{12})?:key\/[(0-9a-zA-Z)-?]+|\$\{[a-zA-Z]\w*\})$`
+                type: string
               name:
                 description: |-
-                  The name of the job run.
+                  The specified name of the job template.
 
                   Regex Pattern: `^[\.\-_/#A-Za-z0-9]+$`
                 type: string
-                x-kubernetes-validations:
-                - message: Value is immutable once set
-                  rule: self == oldSelf
-              releaseLabel:
-                description: |-
-                  The Amazon EMR release version to use for the job run.
-
-                  Regex Pattern: `^[\.\-_/A-Za-z0-9]+$`
-                type: string
-                x-kubernetes-validations:
-                - message: Value is immutable once set
-                  rule: self == oldSelf
               tags:
                 additionalProperties:
                   type: string
-                description: The tags assigned to job runs.
+                description: The tags that are associated with the job template.
                 type: object
-              virtualClusterID:
-                description: |-
-                  The virtual cluster ID for which the job run request is submitted.
-
-                  Regex Pattern: `^[0-9a-z]+$`
-                type: string
-                x-kubernetes-validations:
-                - message: Value is immutable once set
-                  rule: self == oldSelf
-              virtualClusterRef:
-                description: "AWSResourceReferenceWrapper provides a wrapper around
-                  *AWSResourceReference\ntype to provide more user friendly syntax
-                  for references using 'from' field\nEx:\nAPIIDRef:\n\n\tfrom:\n\t
-                  \ name: my-api"
-                properties:
-                  from:
-                    description: |-
-                      AWSResourceReference provides all the values necessary to reference another
-                      k8s resource for finding the identifier(Id/ARN/Name)
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    type: object
-                type: object
+            required:
+            - clientToken
+            - jobTemplateData
+            - name
             type: object
           status:
-            description: JobRunStatus defines the observed state of JobRun
+            description: JobTemplateStatus defines the observed state of JobTemplate
             properties:
               ackResourceMetadata:
                 description: |-
@@ -201,14 +183,16 @@ spec:
                   - type
                   type: object
                 type: array
+              createdAt:
+                description: This output displays the date and time when the job template
+                  was created.
+                format: date-time
+                type: string
               id:
                 description: |-
-                  This output displays the started job run ID.
+                  This output display the created job template ID.
 
                   Regex Pattern: `^[0-9a-z]+$`
-                type: string
-              state:
-                description: The state of the job run.
                 type: string
             type: object
         type: object

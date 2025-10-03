@@ -4,7 +4,7 @@
 
 image:
   repository: public.ecr.aws/aws-controllers-k8s/emrcontainers-controller
-  tag: 1.1.1
+  tag: 0.0.0-non-release-version
   pullPolicy: IfNotPresent
   pullSecrets: []
 
@@ -146,6 +146,7 @@ reconcile:
   # If specified, only the listed resource kinds will be reconciled.
   resources:
     - JobRun
+    - JobTemplate
     - VirtualCluster
 
 serviceAccount:
