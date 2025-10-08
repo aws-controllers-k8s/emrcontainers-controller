@@ -1,0 +1,8 @@
+.DS_Store
+*.swp
+*~
+.idea
+.vscode
+/docs/site
+bin
+build
