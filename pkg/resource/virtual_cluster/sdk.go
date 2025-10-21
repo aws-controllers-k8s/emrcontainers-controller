@@ -264,6 +264,8 @@ func (rm *resourceManager) newCreateRequestPayload(
 					f0f1f0.Namespace = r.ko.Spec.ContainerProvider.Info.EKSInfo.Namespace
 				}
 				f0f1f0Parent.Value = *f0f1f0
+				f0f1 = f0f1f0Parent
+				isInterfaceSet = true
 			}
 			f0.Info = f0f1
 		}
