@@ -48,6 +48,7 @@ type JobRunSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	ReleaseLabel *string `json:"releaseLabel,omitempty"`
 	// The tags assigned to job runs.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	Tags map[string]*string `json:"tags,omitempty"`
 	// The virtual cluster ID for which the job run request is submitted.
 	//
