@@ -32,6 +32,8 @@ operations:
 prefix_config: {}
 resources:
   VirtualCluster:
+    update_operation:
+      custom_method_name: custom_update
     exceptions:
       terminal_codes:
         - ValidationException
@@ -71,6 +73,10 @@ resources:
         type: "string"
         is_immutable: true
         is_required: False
+        compare:
+          is_ignored: true
+      Tags:
+        is_immutable: true
         compare:
           is_ignored: true
     # requeue_on_success_seconds is using 15 seconds for ACK to make describe-job-run API call so that it can update fields (ex: State). This is used as default values for now until ACK enables users to configure this value using Helm charts.

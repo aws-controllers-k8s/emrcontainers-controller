@@ -24,11 +24,14 @@ import pytest
 from acktest.k8s import resource as k8s
 from acktest.resources import random_suffix_name
 from acktest.aws.identity import get_account_id
+from acktest import tags
+from acktest.k8s import condition, resource
 from e2e import service_marker, CRD_GROUP, CRD_VERSION, load_resource
 from e2e.replacement_values import REPLACEMENT_VALUES
 from e2e.bootstrap_resources import get_bootstrap_resources
 
 VC_RESOURCE_PLURAL = "virtualclusters"
+UPDATE_WAIT_SECONDS = 5
 
 @pytest.fixture
 def iam_client():
@@ -83,11 +86,46 @@ class Test_VirtualCluster:
         virtual_cluster_id = vc_cr["status"]["id"]
         assert virtual_cluster_id
 
+        expected_tags = {
+            "Environment": "dev",
+            "Team": "data-engineering",
+            "Owner": "finops"
+        }
+
         try:
             aws_res = emrcontainers_client.describe_virtual_cluster(id=virtual_cluster_id)
             assert aws_res is not None
+
+            assert aws_res["virtualCluster"]["tags"] is not None
+            tags.assert_ack_system_tags(aws_res["virtualCluster"]["tags"])
+            tags.assert_equal_without_ack_tags(expected=expected_tags, actual=aws_res["virtualCluster"]["tags"])
+            
         except emrcontainers_client.exceptions.ResourceNotFoundException:
             pytest.fail(f"Could not find virtual cluster with ID '{virtual_cluster_id}' in EMR on EKS")
+
+        # Update tags for virtual cluster
+        updated_tags = {
+            "Environment": "dev",
+            "Owner": "devops",
+            "Team": "data-engineering",
+        }
+
+        patch = {
+            "spec": {
+                "tags": updated_tags
+            }
+        }
+        k8s.patch_custom_resource(vc_ref, patch)
+        time.sleep(UPDATE_WAIT_SECONDS)
+        condition.resource.wait_on_condition(vc_ref, condition.CONDITION_TYPE_RESOURCE_SYNCED, "True", 6, 10)
+        condition.assert_synced(vc_ref)
+
+        aws_res = emrcontainers_client.describe_virtual_cluster(id=virtual_cluster_id)
+        assert aws_res is not None
+        assert aws_res["virtualCluster"]["tags"] is not None
+
+        tags.assert_ack_system_tags(aws_res["virtualCluster"]["tags"])
+        tags.assert_equal_without_ack_tags(expected=updated_tags, actual=aws_res["virtualCluster"]["tags"])
 
         # delete oidc provider
         try:

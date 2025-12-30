@@ -94,11 +94,6 @@ func newResourceDelta(
 			delta.Add("Spec.ReleaseLabel", a.ko.Spec.ReleaseLabel, b.ko.Spec.ReleaseLabel)
 		}
 	}
-	desiredACKTags, _ := convertToOrderedACKTags(a.ko.Spec.Tags)
-	latestACKTags, _ := convertToOrderedACKTags(b.ko.Spec.Tags)
-	if !ackcompare.MapStringStringEqual(desiredACKTags, latestACKTags) {
-		delta.Add("Spec.Tags", a.ko.Spec.Tags, b.ko.Spec.Tags)
-	}
 	if ackcompare.HasNilDifference(a.ko.Spec.VirtualClusterID, b.ko.Spec.VirtualClusterID) {
 		delta.Add("Spec.VirtualClusterID", a.ko.Spec.VirtualClusterID, b.ko.Spec.VirtualClusterID)
 	} else if a.ko.Spec.VirtualClusterID != nil && b.ko.Spec.VirtualClusterID != nil {
