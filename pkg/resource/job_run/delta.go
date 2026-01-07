@@ -17,16 +17,15 @@ package job_run
 
 import (
 	"bytes"
-	"reflect"
 
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
 	acktags "github.com/aws-controllers-k8s/runtime/pkg/tags"
+	"k8s.io/apimachinery/pkg/api/equality"
 )
 
 // Hack to avoid import errors during build...
 var (
 	_ = &bytes.Buffer{}
-	_ = &reflect.Method{}
 	_ = &acktags.Tags{}
 )
 
@@ -101,7 +100,7 @@ func newResourceDelta(
 			delta.Add("Spec.VirtualClusterID", a.ko.Spec.VirtualClusterID, b.ko.Spec.VirtualClusterID)
 		}
 	}
-	if !reflect.DeepEqual(a.ko.Spec.VirtualClusterRef, b.ko.Spec.VirtualClusterRef) {
+	if !equality.Semantic.Equalities.DeepEqual(a.ko.Spec.VirtualClusterRef, b.ko.Spec.VirtualClusterRef) {
 		delta.Add("Spec.VirtualClusterRef", a.ko.Spec.VirtualClusterRef, b.ko.Spec.VirtualClusterRef)
 	}
 
