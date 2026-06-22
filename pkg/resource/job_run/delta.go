@@ -50,6 +50,9 @@ func newResourceDelta(
 			delta.Add("Spec.ExecutionRoleARN", a.ko.Spec.ExecutionRoleARN, b.ko.Spec.ExecutionRoleARN)
 		}
 	}
+	if !equality.Semantic.Equalities.DeepEqual(a.ko.Spec.ExecutionRoleRef, b.ko.Spec.ExecutionRoleRef) {
+		delta.Add("Spec.ExecutionRoleRef", a.ko.Spec.ExecutionRoleRef, b.ko.Spec.ExecutionRoleRef)
+	}
 	if ackcompare.HasNilDifference(a.ko.Spec.JobDriver, b.ko.Spec.JobDriver) {
 		delta.Add("Spec.JobDriver", a.ko.Spec.JobDriver, b.ko.Spec.JobDriver)
 	} else if a.ko.Spec.JobDriver != nil && b.ko.Spec.JobDriver != nil {
