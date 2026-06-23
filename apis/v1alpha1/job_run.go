@@ -33,7 +33,8 @@ type JobRunSpec struct {
 	//
 	// Regex Pattern: `^arn:(aws[a-zA-Z0-9-]*):iam::(\d{12})?:(role((\u002F)|(\u002F[\u0021-\u007F]+\u002F))[\w+=,.@-]+)$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
-	ExecutionRoleARN *string `json:"executionRoleARN,omitempty"`
+	ExecutionRoleARN *string                                  `json:"executionRoleARN,omitempty"`
+	ExecutionRoleRef *ackv1alpha1.AWSResourceReferenceWrapper `json:"executionRoleRef,omitempty"`
 	// The job driver for the job run.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable once set"
 	JobDriver *JobDriver `json:"jobDriver,omitempty"`
