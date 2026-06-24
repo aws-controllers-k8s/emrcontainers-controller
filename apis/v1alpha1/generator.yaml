@@ -53,6 +53,10 @@ resources:
           path: Status.ID
       ExecutionRoleARN:
         is_immutable: true
+        references:
+          service_name: iam
+          resource: Role
+          path: Status.ACKResourceMetadata.ARN
       ReleaseLabel:
         is_immutable: true
       JobDriver:

@@ -301,6 +301,11 @@ func (in *JobRunSpec) DeepCopyInto(out *JobRunSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.ExecutionRoleRef != nil {
+		in, out := &in.ExecutionRoleRef, &out.ExecutionRoleRef
+		*out = new(corev1alpha1.AWSResourceReferenceWrapper)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.JobDriver != nil {
 		in, out := &in.JobDriver, &out.JobDriver
 		*out = new(JobDriver)
