@@ -16,8 +16,12 @@ package tags
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
+	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
+	acktags "github.com/aws-controllers-k8s/runtime/pkg/tags"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	svcsdk "github.com/aws/aws-sdk-go-v2/service/emrcontainers"
 )
@@ -49,14 +53,30 @@ func SyncResourceTags(
 		exit(err)
 	}()
 
-	addedOrUpdated, removed := computeTagsDelta(desiredTags, latestTags)
+	from := toACKTags(latestTags)
+	to := toACKTags(desiredTags)
+	added, _, removed := ackcompare.GetTagsDifference(from, to)
+
+	// Nil-valued desired keys are absent from `to` (toACKTags skips them), so
+	// GetTagsDifference may place them in `removed` if they exist in `from`.
+	// Delete only nil-valued desired keys from `removed` to preserve the
+	// previous computeTagsDelta semantics of never untagging a nil-valued key.
+	for k, v := range desiredTags {
+		if v == nil {
+			delete(removed, k)
+		}
+	}
+
+	if len(added) == 0 && len(removed) == 0 {
+		return nil
+	}
 
 	if len(removed) > 0 {
 		_, err = client.UntagResource(
 			ctx,
 			&svcsdk.UntagResourceInput{
 				ResourceArn: aws.String(resourceARN),
-				TagKeys:     removed,
+				TagKeys:     slices.Sorted(maps.Keys(removed)),
 			},
 		)
 		mr.RecordAPICall("UPDATE", "UntagResource", err)
@@ -65,12 +85,12 @@ func SyncResourceTags(
 		}
 	}
 
-	if len(addedOrUpdated) > 0 {
+	if len(added) > 0 {
 		_, err = client.TagResource(
 			ctx,
 			&svcsdk.TagResourceInput{
 				ResourceArn: aws.String(resourceARN),
-				Tags:        addedOrUpdated,
+				Tags:        added,
 			},
 		)
 		mr.RecordAPICall("UPDATE", "TagResource", err)
@@ -81,29 +101,15 @@ func SyncResourceTags(
 	return nil
 }
 
-// computeTagsDelta compares two Tag maps and return two different list
-// containing the addedOrupdated and removed tags. The removed tags array
-// only contains the tags Keys.
-func computeTagsDelta(
-	a map[string]*string,
-	b map[string]*string,
-) (addedOrUpdated map[string]string, removed []string) {
-
-	// Find the keys in the Spec have either been added or updated.
-	addedOrUpdated = make(map[string]string)
-	for aKey, aValue := range a {
-		if bValue, exists := b[aKey]; !exists || (aValue != nil && bValue != nil && *aValue != *bValue) {
-			if aValue != nil {
-				addedOrUpdated[aKey] = *aValue
-			}
+// toACKTags converts an EMR Containers tag map into the ACK runtime tags type.
+// Entries with nil values are skipped, since EMR Containers rejects empty tag values.
+func toACKTags(tags map[string]*string) acktags.Tags {
+	m := make(acktags.Tags)
+	for k, v := range tags {
+		if v == nil {
+			continue
 		}
+		m[k] = *v
 	}
-
-	for bKey := range b {
-		if _, exists := a[bKey]; !exists {
-			removed = append(removed, bKey)
-		}
-	}
-
-	return addedOrUpdated, removed
+	return m
 }
