@@ -23,6 +23,7 @@ import (
 	svcsdk "github.com/aws/aws-sdk-go-v2/service/emrcontainers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 type mockTagsClient struct {
@@ -144,57 +145,128 @@ func TestSyncResourceTagsError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 }
+func TestSyncResourceTagsInputs(t *testing.T) {
+	ctx := context.Background()
+	resourceARN := "arn:aws:emr-containers:us-west-2:123456789012:virtualclusters/test"
 
-func TestComputeTagsDelta(t *testing.T) {
 	tests := []struct {
 		name            string
-		a               map[string]*string
-		b               map[string]*string
-		expectedAdded   map[string]string
-		expectedRemoved []string
+		desired         map[string]*string
+		latest          map[string]*string
+		expectedTag     map[string]string
+		expectedUntagKs []string
 	}{
 		{
-			name: "add new tags",
-			a: map[string]*string{
+			name: "no changes",
+			desired: map[string]*string{
+				"key1": aws.String("value1"),
+			},
+			latest: map[string]*string{
+				"key1": aws.String("value1"),
+			},
+		},
+		{
+			name: "add tags",
+			desired: map[string]*string{
 				"key1": aws.String("value1"),
 				"key2": aws.String("value2"),
 			},
-			b: map[string]*string{},
-			expectedAdded: map[string]string{
+			latest: map[string]*string{},
+			expectedTag: map[string]string{
 				"key1": "value1",
 				"key2": "value2",
 			},
-			expectedRemoved: []string{},
 		},
 		{
-			name: "remove tags",
-			a:    map[string]*string{},
-			b: map[string]*string{
+			name:    "remove tags",
+			desired: map[string]*string{},
+			latest: map[string]*string{
 				"key1": aws.String("value1"),
+				"key2": aws.String("value2"),
 			},
-			expectedAdded:   map[string]string{},
-			expectedRemoved: []string{"key1"},
+			// Keys must be in lexicographic order: SyncResourceTags calls slices.Sorted(maps.Keys(removed)).
+			expectedUntagKs: []string{"key1", "key2"},
 		},
 		{
-			name: "update tags",
-			a: map[string]*string{
+			name: "value change only adds the updated tag",
+			desired: map[string]*string{
 				"key1": aws.String("newvalue"),
+				"key2": aws.String("value2"),
 			},
-			b: map[string]*string{
+			latest: map[string]*string{
 				"key1": aws.String("oldvalue"),
+				"key2": aws.String("value2"),
 			},
-			expectedAdded: map[string]string{
+			expectedTag: map[string]string{
 				"key1": "newvalue",
 			},
-			expectedRemoved: []string{},
+		},
+		{
+			name:            "add and remove simultaneously",
+			desired:         map[string]*string{"key2": aws.String("v2")},
+			latest:          map[string]*string{"key1": aws.String("v1")},
+			expectedTag:     map[string]string{"key2": "v2"},
+			expectedUntagKs: []string{"key1"},
+		},
+		{
+			name: "nil desired value is not sent",
+			desired: map[string]*string{
+				"key1": nil,
+			},
+			latest: map[string]*string{},
+		},
+		{
+			name: "nil desired value does not untag existing tag",
+			desired: map[string]*string{
+				"key1": nil,
+			},
+			latest: map[string]*string{
+				"key1": aws.String("value1"),
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			added, removed := computeTagsDelta(tt.a, tt.b)
-			assert.Equal(t, tt.expectedAdded, added)
-			assert.ElementsMatch(t, tt.expectedRemoved, removed)
+			client := &mockTagsClient{}
+			mr := &mockMetricsRecorder{}
+
+			var gotTag *svcsdk.TagResourceInput
+			var gotUntag *svcsdk.UntagResourceInput
+
+			if len(tt.expectedTag) > 0 {
+				client.On("TagResource", ctx, mock.AnythingOfType("*emrcontainers.TagResourceInput")).Run(func(args mock.Arguments) {
+					gotTag = args.Get(1).(*svcsdk.TagResourceInput)
+				}).Return(&svcsdk.TagResourceOutput{}, nil)
+				mr.On("RecordAPICall", "UPDATE", "TagResource", nil)
+			}
+
+			if len(tt.expectedUntagKs) > 0 {
+				client.On("UntagResource", ctx, mock.AnythingOfType("*emrcontainers.UntagResourceInput")).Run(func(args mock.Arguments) {
+					gotUntag = args.Get(1).(*svcsdk.UntagResourceInput)
+				}).Return(&svcsdk.UntagResourceOutput{}, nil)
+				mr.On("RecordAPICall", "UPDATE", "UntagResource", nil)
+			}
+
+			err := SyncResourceTags(ctx, client, mr, resourceARN, tt.desired, tt.latest)
+			assert.NoError(t, err)
+
+			client.AssertExpectations(t)
+			mr.AssertExpectations(t)
+			if len(tt.expectedTag) > 0 {
+				require.NotNil(t, gotTag)
+				assert.Equal(t, resourceARN, aws.ToString(gotTag.ResourceArn))
+				assert.Equal(t, tt.expectedTag, gotTag.Tags)
+			}
+			if len(tt.expectedUntagKs) > 0 {
+				require.NotNil(t, gotUntag)
+				assert.Equal(t, resourceARN, aws.ToString(gotUntag.ResourceArn))
+				assert.Equal(t, tt.expectedUntagKs, gotUntag.TagKeys)
+			}
+			if len(tt.expectedTag) == 0 && len(tt.expectedUntagKs) == 0 {
+				client.AssertNotCalled(t, "TagResource", mock.Anything, mock.Anything)
+				client.AssertNotCalled(t, "UntagResource", mock.Anything, mock.Anything)
+			}
 		})
 	}
 }
